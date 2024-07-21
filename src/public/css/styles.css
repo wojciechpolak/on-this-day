@@ -1,0 +1,107 @@
+/**
+ * styles.css
+ *
+ * On This Day (C) 2024 Wojciech Polak
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+:root {
+    --color-background: #f0f0f0;
+    --color-text: #333;
+    --color-event-background: #fff;
+    --color-event-shadow: rgba(0, 0, 0, 0.1);
+    --color-event-border: #ddd;
+    --color-event-date: #777;
+}
+
+/* Dark mode variables */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-background: #121212;
+        --color-text: #f0f0f0;
+        --color-event-background: #1e1e1e;
+        --color-event-shadow: rgba(255, 255, 255, 0.1);
+        --color-event-border: #333;
+        --color-event-date: #999;
+    }
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+#date-subtitle {
+    margin-bottom: 1em;
+}
+
+nav {
+    margin-top: 1em;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+label {
+    margin: 10px;
+}
+
+#events-container {
+    margin-top: 20px;
+    width: 90%;
+    max-width: 600px;
+}
+
+.event {
+    background-color: var(--color-event-background);
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px var(--color-event-shadow);
+    border: 1px solid var(--color-event-border);
+}
+.event h2 {
+    margin-top: 0;
+    font-size: 18px;
+}
+.event .rel-date {
+    color: var(--color-event-date);
+}
+.event p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+.event .description {
+    margin-bottom: 1em;
+}
+.event time {
+    color: var(--color-event-date);
+}
+
+.no-events-message {
+    text-align: center;
+}

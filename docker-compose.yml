@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  otd:
+    image: ${APP_IMAGE:-ghcr.io/wojciechpolak/on-this-day:latest}
+    restart: unless-stopped
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - APP_ICS_URLS
+      - APP_PORT
+      - APP_CACHE_TTL
