@@ -32,7 +32,7 @@ a convenient way to look back at your personal history.
 ### Running with Docker (out of the box)
 
 ```shell
-docker run -it -p 8080:80 -v $(pwd)/.env:/app/.env:ro --name otd ghcr.io/wojciechpolak/on-this-day
+docker run -it -p 8080:8080 -v $(pwd)/.env:/app/.env:ro --name otd ghcr.io/wojciechpolak/on-this-day
 ```
 
 Note: Docker's `--env-file` option does not support multiline values.
@@ -40,7 +40,7 @@ Note: Docker's `--env-file` option does not support multiline values.
 ### Running with Docker Compose
 
 ```shell
-docker compose up
+curl https://raw.githubusercontent.com/wojciechpolak/on-this-day/master/docker-compose.yml | docker compose -f - up
 ```
 
 ### Running from the source code
