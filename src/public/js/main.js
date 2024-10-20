@@ -20,7 +20,7 @@
 /**
  * Function to show events that happened on this day, week, or month
  * @param {Array<IcsEvent>} events
- * @param {string} mode - 'day' or 'week' or 'month'
+ * @param {string} mode - 'day' or 'week' or 'month' or 'dayOfMonth'
  */
 function showEvents(events, mode) {
     const container = document.getElementById('events-container');
@@ -38,6 +38,7 @@ function showEvents(events, mode) {
         day: 'numeric'
     };
 
+    const title = document.getElementById('title');
     const dateSubtitle = document.getElementById('date-subtitle');
     dateSubtitle.innerHTML = `(${today.toLocaleDateString(userLang, dateOptions)})`;
 
@@ -57,6 +58,13 @@ function showEvents(events, mode) {
     const isEventThisMonth = (eventDate) =>
         eventDate.getUTCMonth() === month &&
         eventDate.getUTCFullYear() !== year;
+
+    /**
+     * @param {Date} eventDate - The date of the event
+     * @returns {boolean}
+     */
+    const isEventThisDayMonth = (eventDate) =>
+        eventDate.getUTCDate() === day;
 
     /**
      * @param {Date} eventDate - The date of the event
@@ -85,7 +93,11 @@ function showEvents(events, mode) {
      */
     const getRelativeTime = (eventDate) => {
         const diffYears = today.getUTCFullYear() - eventDate.getUTCFullYear();
-        if (diffYears === 0) {
+        const diffMonths = today.getUTCMonth() - eventDate.getUTCMonth();
+        if (diffYears === 0 && diffMonths > 0) {
+            return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
+        }
+        else if (diffYears === 0) {
             return ''; // Event is in the current year
         }
         else if (diffYears > 0) {
@@ -128,8 +140,20 @@ function showEvents(events, mode) {
     const filteredEvents = events.filter(event => {
         const eventDate = event.DTSTART || event.DTEND;
         if (eventDate) {
-            return mode === 'day' ? isEventOnThisDay(eventDate) :
-                mode === 'week' ? isEventThisWeek(eventDate) : isEventThisMonth(eventDate);
+            switch (mode) {
+                case 'week':
+                    title.innerHTML = 'On This Week...';
+                    return isEventThisWeek(eventDate);
+                case 'month':
+                    title.innerHTML = 'On This Month...';
+                    return isEventThisMonth(eventDate);
+                case 'dayOfMonth':
+                    title.innerHTML = 'On This Day of the Month...';
+                    return isEventThisDayMonth(eventDate);
+                default:
+                    title.innerHTML = 'On This Day...';
+                    return isEventOnThisDay(eventDate);
+            }
         }
         else {
             console.log('PROBLEM with', event)
@@ -155,7 +179,7 @@ function showEvents(events, mode) {
         eventElement.innerHTML = `
             <h2>${event.SUMMARY} <span class="rel-date">${relativeTime ? `(${relativeTime})</span>` : ''}</h2>
             <p class="description">${event.DESCRIPTION || ''}</p>
-            <p><time>${formatEventDateRange(event.DTSTART, event.DTEND)}</time></p>
+            <p><time>${formatEventDateRange(event.DTSTART, event.DTEND || event.DTSTART)}</time></p>
         `;
         container.appendChild(eventElement);
     });

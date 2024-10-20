@@ -9,17 +9,20 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <h1>On This Day...</h1>
+  <h1 id="title">On This Day...</h1>
   <div id="date-subtitle"></div>
   <nav>
     <label>
-      <input type="radio" name="view-mode" value="day" checked> On This Day
+      <input type="radio" name="view-mode" value="day" checked> Day
     </label>
     <label>
-      <input type="radio" name="view-mode" value="week"> On This Week
+      <input type="radio" name="view-mode" value="week"> Week
     </label>
     <label>
-      <input type="radio" name="view-mode" value="month"> On This Month
+      <input type="radio" name="view-mode" value="month"> Month
+    </label>
+    <label>
+      <input type="radio" name="view-mode" value="dayOfMonth"> Day of the Month
     </label>
   </nav>
   <div id="events-container"></div>
