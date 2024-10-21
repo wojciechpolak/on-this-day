@@ -1,5 +1,5 @@
 /**
- * ics-parser.js v20240913
+ * ics-parser.js v20241021
  *
  * Copyright (C) 2024 Wojciech Polak
  *
@@ -98,6 +98,11 @@ class ICalParser {
                         }
                         event[dateKey] = value;
                         event[`${dateKey}_VALUE`] = 'DATE'; // Mark this as a DATE value
+                    }
+                    else if (key.includes(';VALUE=TEXT')) {
+                        const k = key.split(';')[0];
+                        event[k] = this.unescapeICalString(value);
+                        event[`${k}_VALUE`] = 'TEXT';
                     }
                     else {
                         if (key === 'DTSTART' || key === 'DTEND' || key === 'DTSTAMP') {

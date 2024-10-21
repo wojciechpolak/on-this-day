@@ -178,11 +178,44 @@ function showEvents(events, mode) {
         const relativeTime = getRelativeTime(event.DTSTART || event.DTEND);
         eventElement.innerHTML = `
             <h2>${event.SUMMARY} <span class="rel-date">${relativeTime ? `(${relativeTime})</span>` : ''}</h2>
-            <p class="description">${event.DESCRIPTION || ''}</p>
+            <p class="description">${parseInputText(event.DESCRIPTION || '')}</p>
             <p><time>${formatEventDateRange(event.DTSTART, event.DTEND || event.DTSTART)}</time></p>
         `;
         container.appendChild(eventElement);
     });
+}
+
+/**
+ * Function that takes an input string, escapes any potentially harmful
+ * HTML to prevent XSS attacks, converts URLs into clickable anchor (<a>)
+ * tags, and replaces newline characters with <br> tags.
+ * @param {string} input
+ * @returns {string}
+ */
+ function parseInputText(input) {
+    function escapeHTML(str) {
+        const replacements = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+        };
+        return str.replace(/[&<>"']/g, (char) => replacements[char]);
+    }
+
+    // Convert URLs to clickable links
+    function linkify(str) {
+        const urlRegex = /https?:\/\/[^\s/$.?#].[^\s]*/gi;
+        return str.replace(urlRegex, function(url) {
+            const escapedURL = escapeHTML(url);
+            return `<a href="${escapedURL}" target="_blank" rel="noopener noreferrer">${escapedURL}</a>`;
+        });
+    }
+
+    let escapedText = escapeHTML(input);
+    let linkedText = linkify(escapedText);
+    return linkedText.replace(/\n/g, '<br>');
 }
 
 /**

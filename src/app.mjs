@@ -20,13 +20,16 @@
 /*global process */
 
 import express from 'express';
+import fs from 'fs/promises';
 import fetch from 'node-fetch';
+import path from 'path';
 import NodeCache from 'node-cache';
 import dotenv from 'dotenv';
 import logger from './logger.mjs';
 
 dotenv.config();
 
+const __dirname = import.meta.dirname;
 const app = express();
 const port = process.env.APP_PORT ?? 3000;
 const cache = new NodeCache({stdTTL: process.env.APP_CACHE_TTL ?? 86400});
@@ -49,9 +52,16 @@ app.get('/fetch-ics', async (req, res) => {
 
         // Fetch data from all URLs if not in cache
         const icsDataArray = await Promise.all(icsUrls.map(async (url) => {
-            logger.debug('Fetching ICS from %s', url);
-            const response = await fetch(url);
-            return await response.text();
+            if (url.startsWith('/') || url.startsWith('./')) {
+                const filePath = path.resolve(__dirname, url);
+                logger.debug('Fetching ICS from local file: %s', filePath);
+                return await fs.readFile(filePath, 'utf-8');
+            }
+            else {
+                logger.debug('Fetching ICS from %s', url);
+                const response = await fetch(url);
+                return await response.text();
+            }
         }));
 
         // Combine all the ICS data into one string
