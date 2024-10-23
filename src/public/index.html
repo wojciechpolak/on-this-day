@@ -3,29 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>On This Day...</title>
+  <title>On This Day</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕰️</text></svg>">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <h1 id="title">On This Day...</h1>
-  <div id="date-subtitle"></div>
-  <nav>
-    <label>
-      <input type="radio" name="view-mode" value="day" checked> Day
-    </label>
-    <label>
-      <input type="radio" name="view-mode" value="week"> Week
-    </label>
-    <label>
-      <input type="radio" name="view-mode" value="month"> Month
-    </label>
-    <label>
-      <input type="radio" name="view-mode" value="dayOfMonth"> Day of the Month
-    </label>
+  <h1 id="title">&nbsp;</h1>
+  <nav class="date">
+    <button class="button left">-</button>
+    <div id="date-subtitle">&nbsp;</div>
+    <button class="button right">+</button>
   </nav>
-  <div id="events-container"></div>
+  <div class="tabs-container">
+    <ul class="tabs">
+      <li class="tab active" data-tab="tab1">Personal Events</li>
+    </ul>
+    <div class="tab-content active" id="tab1">
+      <nav class="mode">
+        <label>
+          <input type="radio" name="view-mode" value="day" checked> Day
+        </label>
+        <label>
+          <input type="radio" name="view-mode" value="week"> Week
+        </label>
+        <label>
+          <input type="radio" name="view-mode" value="month"> Month
+        </label>
+        <label>
+          <input type="radio" name="view-mode" value="dayOfMonth"> Day of the Month
+        </label>
+      </nav>
+      <div id="events-container"></div>
+    </div>
+    <div class="tab-content" id="tab-history" style="display: none;">
+      <div id="history-container"></div>
+    </div>
+  </div>
   <script src="js/ics-parser.js"></script>
   <script src="js/main.js"></script>
 </body>

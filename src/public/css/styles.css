@@ -19,22 +19,32 @@
 
 :root {
     --color-background: #f0f0f0;
+    --color-link: #333;
     --color-text: #333;
     --color-event-background: #fff;
     --color-event-shadow: rgba(0, 0, 0, 0.1);
     --color-event-border: #ddd;
     --color-event-date: #777;
+    --color-tabs-border: #ddd;
+    --color-button-bg: #fff;
+    --color-button-text: #333;
+    --color-button-border: #ccc;
 }
 
 /* Dark mode variables */
 @media (prefers-color-scheme: dark) {
     :root {
         --color-background: #121212;
+        --color-link: #f0f0f0;
         --color-text: #f0f0f0;
         --color-event-background: #1e1e1e;
         --color-event-shadow: rgba(255, 255, 255, 0.1);
         --color-event-border: #333;
         --color-event-date: #999;
+        --color-tabs-border: #333;
+        --color-button-bg: #333;
+        --color-button-text: #fff;
+        --color-button-border: #555;
     }
 }
 
@@ -56,10 +66,34 @@ h1 {
 }
 
 #date-subtitle {
-    margin-bottom: 1em;
+    cursor: pointer;
 }
 
-nav {
+nav.date {
+    width: 90%;
+    max-width: 600px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .5em;
+}
+nav.date .button {
+    width: 30px;
+    height: 30px;
+    background-color: var(--color-button-bg);
+    color: var(--color-button-text);
+    border: 2px solid var(--color-button-border);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+nav.date .button:hover {
+    background-color: var(--color-button-text);
+    color: var(--color-button-bg);
+    border-color: var(--color-button-bg);
+}
+
+nav.mode {
     margin-top: 1em;
     display: flex;
     flex-direction: row;
@@ -73,8 +107,7 @@ label {
 
 #events-container {
     margin-top: 20px;
-    width: 90%;
-    max-width: 600px;
+    width: 100%;
 }
 
 .event {
@@ -86,11 +119,30 @@ label {
     border: 1px solid var(--color-event-border);
 }
 .event h2 {
-    margin-top: 0;
+    display: flex;
     font-size: 18px;
+    margin-top: 0;
+}
+.event h2 .title {
+    flex: 1;
+    margin-right: .5em;
+    text-overflow: ellipsis;
+    overflow-x: hidden;
 }
 .event .rel-date {
+    flex-shrink: 0;
+    font-size: 90%;
+    margin-top: 2px;
     color: var(--color-event-date);
+}
+#history-container .event h2 {
+    align-items: center;
+}
+#history-container .event h2 .title {
+    white-space: nowrap;
+}
+#history-container .event .rel-date {
+    margin-top: 0;
 }
 .event p {
     margin: 5px 0;
@@ -99,10 +151,45 @@ label {
 .event .description {
     margin-bottom: 1em;
 }
+.event .description a {
+    color: var(--color-link);
+}
 .event time {
     color: var(--color-event-date);
 }
 
+.loading,
 .no-events-message {
+    margin-top: 1em;
     text-align: center;
+}
+
+.tabs-container {
+    width: 90%;
+    max-width: 600px;
+}
+
+.tabs {
+    list-style-type: none;
+    display: flex;
+    justify-content: space-around;
+    border-bottom: 2px solid var(--color-tabs-border);
+    padding-left: 0;
+}
+
+.tab {
+    padding: 10px 50px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: border-bottom 0.3s;
+    user-select: none;
+}
+
+.tab.active {
+    border-bottom: 3px solid #007bff;
+    font-weight: bold;
+}
+
+.hidden {
+    display: none;
 }

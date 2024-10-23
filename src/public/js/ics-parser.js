@@ -104,6 +104,11 @@ class ICalParser {
                         event[k] = this.unescapeICalString(value);
                         event[`${k}_VALUE`] = 'TEXT';
                     }
+                    else if (key.includes(';FMTTYPE=text/html')) {
+                        const k = key.split(';')[0];
+                        event[k] = this.unescapeICalString(value);
+                        event[`${k}_VALUE`] = 'HTML';
+                    }
                     else {
                         if (key === 'DTSTART' || key === 'DTEND' || key === 'DTSTAMP') {
                             value = this.parseDate(value);

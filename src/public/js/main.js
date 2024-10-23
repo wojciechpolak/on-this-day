@@ -21,12 +21,15 @@
  * Function to show events that happened on this day, week, or month
  * @param {Array<IcsEvent>} events
  * @param {string} mode - 'day' or 'week' or 'month' or 'dayOfMonth'
+ * @param {boolean} changeTitle
+ * @param {Date=} today
+ * @param {HTMLElement=} container
  */
-function showEvents(events, mode) {
-    const container = document.getElementById('events-container');
+function showEvents(events, mode, changeTitle, today, container) {
+    container = container || document.getElementById('events-container');
     container.innerHTML = '';
 
-    const today = new Date();
+    today = today || new Date();
     const day = today.getUTCDate();
     const month = today.getUTCMonth();
     const year = today.getUTCFullYear();
@@ -38,7 +41,6 @@ function showEvents(events, mode) {
         day: 'numeric'
     };
 
-    const title = document.getElementById('title');
     const dateSubtitle = document.getElementById('date-subtitle');
     dateSubtitle.innerHTML = `(${today.toLocaleDateString(userLang, dateOptions)})`;
 
@@ -140,18 +142,15 @@ function showEvents(events, mode) {
     const filteredEvents = events.filter(event => {
         const eventDate = event.DTSTART || event.DTEND;
         if (eventDate) {
+            changeTitle && setTitle(mode);
             switch (mode) {
                 case 'week':
-                    title.innerHTML = 'On This Week...';
                     return isEventThisWeek(eventDate);
                 case 'month':
-                    title.innerHTML = 'On This Month...';
                     return isEventThisMonth(eventDate);
                 case 'dayOfMonth':
-                    title.innerHTML = 'On This Day of the Month...';
                     return isEventThisDayMonth(eventDate);
                 default:
-                    title.innerHTML = 'On This Day...';
                     return isEventOnThisDay(eventDate);
             }
         }
@@ -176,13 +175,38 @@ function showEvents(events, mode) {
         const eventElement = document.createElement('div');
         eventElement.className = 'event';
         const relativeTime = getRelativeTime(event.DTSTART || event.DTEND);
+        const description = event['X-ALT-DESC'] || parseInputText(event.DESCRIPTION || '');
         eventElement.innerHTML = `
-            <h2>${event.SUMMARY} <span class="rel-date">${relativeTime ? `(${relativeTime})</span>` : ''}</h2>
-            <p class="description">${parseInputText(event.DESCRIPTION || '')}</p>
+            <h2>
+               <span class="title">${parseInputText(event.SUMMARY)}</span>
+               <span class="rel-date">${relativeTime ? `${relativeTime}</span>` : ''}
+            </h2>
+            <p class="description">${description}</p>
             <p><time>${formatEventDateRange(event.DTSTART, event.DTEND || event.DTSTART)}</time></p>
         `;
         container.appendChild(eventElement);
     });
+}
+
+/**
+ * Set Title
+ * @param {string=} mode
+ */
+function setTitle(mode) {
+    const title = document.getElementById('title');
+    switch (mode) {
+        case 'week':
+            title.innerHTML = 'On This Week...';
+            break;
+        case 'month':
+            title.innerHTML = 'On This Month...';
+            break;
+        case 'dayOfMonth':
+            title.innerHTML = 'On This Day of the Month...';
+            break;
+        default:
+            title.innerHTML = 'On This Day...';
+    }
 }
 
 /**
@@ -221,15 +245,95 @@ function showEvents(events, mode) {
 /**
  * Function to load iCalendar data
  * @param {string} url
+ * @param {HTMLElement=} container
  * @returns {Promise<string>}
  */
-async function loadICalData(url) {
+async function loadICalData(url, container) {
+    container = container || document.getElementById('events-container');
+    container.innerHTML = '<div class="loading">Loading...</div>';
     const response = await fetch(url);
     return await response.text();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const STORAGE_KEY_VIEW_MODE = 'otdViewMode';
+
+    const historyContainer = document.getElementById('history-container');
+    const tabsContainer = document.querySelector('.tabs');
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const shouldShowHistoryTab = true;
+    let selectedDate = new Date();
+
+    // Add second tab dynamically if condition is met
+    if (shouldShowHistoryTab) {
+        const secondTab = document.createElement('li');
+        secondTab.classList.add('tab');
+        secondTab.setAttribute('data-tab', 'tab-history');
+        secondTab.innerText = 'Historical Events';
+        tabsContainer.appendChild(secondTab);
+
+        // Re-select tabs to include the new one
+        const updatedTabs = document.querySelectorAll('.tab');
+
+        updatedTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const target = this.getAttribute('data-tab');
+                if (target === 'tab-history') {
+                    if (historyContainer.innerHTML === '') {
+                        loadWikipediaEvents();
+                    }
+                    setTitle();
+                }
+                else {
+                    setTitle(localStorage.getItem(STORAGE_KEY_VIEW_MODE));
+                }
+
+                updatedTabs.forEach(tab => tab.classList.remove('active'));
+                this.classList.add('active');
+
+                tabContents.forEach(content => {
+                    if (content.id === target) {
+                        content.style.display = 'block';
+                    }
+                    else {
+                        content.style.display = 'none';
+                    }
+                });
+            });
+        });
+    }
+    else {
+        document.getElementById('tab-history').remove();
+    }
+
+    // Set initial tab event listeners
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const target = this.getAttribute('data-tab');
+            if (target === 'tab-history') {
+                if (historyContainer.innerHTML === '') {
+                    loadWikipediaEvents();
+                }
+                setTitle();
+            }
+            else {
+                setTitle(localStorage.getItem(STORAGE_KEY_VIEW_MODE));
+            }
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            this.classList.add('active');
+
+            tabContents.forEach(content => {
+                if (content.id === target) {
+                    content.style.display = 'block';
+                }
+                else {
+                    content.style.display = 'none';
+                }
+            });
+        });
+    });
 
     // Load the iCalendar data and render the events
     loadICalData('/fetch-ics').then(icalData => {
@@ -241,10 +345,29 @@ document.addEventListener('DOMContentLoaded', () => {
         radioButtons.forEach(radio => {
             radio.addEventListener('change', (event) => {
                 const viewMode = event.target.value;
-                showEvents(events, viewMode);
+                showEvents(events, viewMode, true, selectedDate);
                 localStorage.setItem(STORAGE_KEY_VIEW_MODE, viewMode);
             });
         });
+
+        document.querySelector('nav.date button.left').onclick = function() {
+            const viewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE);
+            selectedDate.setDate(selectedDate.getDate() - 1);
+            showEvents(events, viewMode, true, selectedDate);
+            loadWikipediaEvents();
+        };
+        document.querySelector('nav.date button.right').onclick = function() {
+            const viewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE);
+            selectedDate.setDate(selectedDate.getDate() + 1);
+            showEvents(events, viewMode, true, selectedDate);
+            loadWikipediaEvents();
+        };
+        document.querySelector('#date-subtitle').onclick = function() {
+            const viewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE);
+            selectedDate = new Date();
+            showEvents(events, viewMode, true, selectedDate);
+            loadWikipediaEvents();
+        };
 
         // Sort events by DTSTART
         events.sort((a, b) => b.DTSTART - a.DTSTART);
@@ -259,6 +382,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Show events for the default mode (day)
-        showEvents(events, savedViewMode);
+        showEvents(events, savedViewMode, true, selectedDate);
     });
+
+    /**
+     * Loads Wikipedia events based on date and language
+     * @param {string=} lang
+     */
+    function loadWikipediaEvents(lang) {
+        const userLang = (lang || navigator.language || 'en').slice(0, 2);
+        let date = selectedDate.toISOString().slice(0, 10);
+        // Load the Wikipedia data and render the events
+        loadICalData(`/fetch-wikipedia?date=${date}&lang=${userLang}`,
+            historyContainer).then(icalData => {
+            const parser = new ICalParser(icalData);
+            const events = parser.getEvents();
+            console.log('Wikipedia', events);
+
+            // Show events for the default mode (day)
+            showEvents(events, 'day', false, selectedDate, historyContainer);
+        });
+    }
 });

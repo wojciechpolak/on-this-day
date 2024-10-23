@@ -26,6 +26,7 @@ import path from 'path';
 import NodeCache from 'node-cache';
 import dotenv from 'dotenv';
 import logger from './logger.mjs';
+import wiki2ics from './wiki2ics.mjs';
 
 dotenv.config();
 
@@ -75,6 +76,38 @@ app.get('/fetch-ics', async (req, res) => {
     catch (error) {
         logger.error(error);
         res.status(500).send('Error fetching ICS data');
+    }
+});
+
+app.get('/fetch-wikipedia', async (req, res) => {
+    const dateParam = req.query.date; // Expected in 'YYYY-MM-DD' format
+    let lang = req.query.lang || 'en';
+
+    if (process.env.APP_WIKIPEDIA_LANG_ENFORCE) {
+        lang = process.env.APP_WIKIPEDIA_LANG || 'en';
+    }
+
+    try {
+        const cacheKey = `wikipediaData-${lang}-${dateParam}`;
+        const wikipediaSections = process.env.APP_WIKIPEDIA_SECTIONS;
+
+        // Check if the data is already in cache
+        if (cache.has(cacheKey)) {
+            return res.send(cache.get(cacheKey));
+        }
+
+        let sectionTitles = undefined;
+        if (wikipediaSections) {
+            sectionTitles = wikipediaSections.split(',');
+        }
+        const wikiData = await wiki2ics(dateParam, sectionTitles, lang);
+
+        cache.set(cacheKey, wikiData);
+        res.send(wikiData);
+    }
+    catch (error) {
+        logger.error(error);
+        res.status(500).send('Error fetching Wikipedia data');
     }
 });
 

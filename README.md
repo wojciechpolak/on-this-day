@@ -8,26 +8,48 @@ a convenient way to look back at your personal history.
 
 ## Features
 
-- **View Events by Day, Week, or Month**: Toggle between viewing events 
-    that happened on this exact day, during this week, or throughout
-    this month in previous years.
+- **View Events by Day, Week, Month, or Day of the Month**: Toggle
+    between viewing events that happened on this exact day, during
+    this week, throughout this month, or on the same day of any month
+    in previous years.
 - **Multiple Calendar Support**: Fetch and merge events from multiple
     ICS calendar URLs.
+- **Tabs for Event Sources**: View events from your personal ICS
+    calendars or explore historical events from Wikipedia's "On This
+    Day" feature.
+  - **Personal Events**: Displays events from your calendars.
+  - **Historical Events**: Shows global historical events from
+      Wikipedia that happened on this day.
 - **Automatic Dark Mode**: Enjoy a user interface that automatically
     adjusts between light and dark mode based on your system
     preferences.
 - **Relative Time Display**: Events display how long ago they
     occurred, making it easy to see the time elapsed since each event.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./.screenshots/main-view-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="./.screenshots/main-view-light.png">
+  <img alt="Screenshot of On This Day" src="./.screenshots/main-view-light.png">
+</picture>
+
 ## Running
 
 ### Create a `.env` file and add your calendar URL(s):
-   ```env
-   APP_ICS_URLS="
-   https://calendar.google.com/calendar/ical/first.ics,
-   https://calendar.google.com/calendar/ical/second.ics
-   "
-   ```
+
+```env
+APP_ICS_URLS="
+https://calendar.google.com/calendar/ical/first.ics,
+https://calendar.google.com/calendar/ical/second.ics
+"
+```
+
+Override default Wikipedia settings with:
+
+```env
+APP_WIKIPEDIA_LANG=en
+APP_WIKIPEDIA_LANG_ENFORCE=1
+APP_WIKIPEDIA_SECTIONS=Events,Births
+```
 
 ### Running with Docker (out of the box)
 
