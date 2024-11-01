@@ -87,7 +87,14 @@ nav.date .button {
     cursor: pointer;
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
-nav.date .button:hover {
+@media (hover: hover) and (pointer: fine) {
+    nav.date .button:hover {
+        background-color: var(--color-button-text);
+        color: var(--color-button-bg);
+        border-color: var(--color-button-bg);
+    }
+}
+nav.date .button:active {
     background-color: var(--color-button-text);
     color: var(--color-button-bg);
     border-color: var(--color-button-bg);

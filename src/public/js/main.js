@@ -263,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
     const shouldShowHistoryTab = true;
+    let selectedTab = 'tab-personal';
     let selectedDate = new Date();
 
     // Add second tab dynamically if condition is met
@@ -278,9 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updatedTabs.forEach(tab => {
             tab.addEventListener('click', function() {
-                const target = this.getAttribute('data-tab');
-                if (target === 'tab-history') {
-                    if (historyContainer.innerHTML === '') {
+                selectedTab = this.getAttribute('data-tab');
+                if (selectedTab === 'tab-history') {
+                    if (!isHistoryLoaded()) {
                         loadWikipediaEvents();
                     }
                     setTitle();
@@ -293,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.classList.add('active');
 
                 tabContents.forEach(content => {
-                    if (content.id === target) {
+                    if (content.id === selectedTab) {
                         content.style.display = 'block';
                     }
                     else {
@@ -310,9 +311,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set initial tab event listeners
     tabs.forEach(tab => {
         tab.addEventListener('click', function() {
-            const target = this.getAttribute('data-tab');
-            if (target === 'tab-history') {
-                if (historyContainer.innerHTML === '') {
+            selectedTab = this.getAttribute('data-tab');
+            if (selectedTab === 'tab-history') {
+                if (!isHistoryLoaded()) {
                     loadWikipediaEvents();
                 }
                 setTitle();
@@ -325,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.classList.add('active');
 
             tabContents.forEach(content => {
-                if (content.id === target) {
+                if (content.id === selectedTab) {
                     content.style.display = 'block';
                 }
                 else {
@@ -354,19 +355,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const viewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE);
             selectedDate.setDate(selectedDate.getDate() - 1);
             showEvents(events, viewMode, true, selectedDate);
-            loadWikipediaEvents();
+            if (isHistoryVisible()) {
+                loadWikipediaEvents();
+            }
+            else {
+                historyContainer.innerHTML = '';
+            }
         };
         document.querySelector('nav.date button.right').onclick = function() {
             const viewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE);
             selectedDate.setDate(selectedDate.getDate() + 1);
             showEvents(events, viewMode, true, selectedDate);
-            loadWikipediaEvents();
+            if (isHistoryVisible()) {
+                loadWikipediaEvents();
+            }
+            else {
+                historyContainer.innerHTML = '';
+            }
         };
         document.querySelector('#date-subtitle').onclick = function() {
             const viewMode = localStorage.getItem(STORAGE_KEY_VIEW_MODE);
             selectedDate = new Date();
             showEvents(events, viewMode, true, selectedDate);
-            loadWikipediaEvents();
+            if (isHistoryVisible()) {
+                loadWikipediaEvents();
+            }
+            else {
+                historyContainer.innerHTML = '';
+            }
         };
 
         // Sort events by DTSTART
@@ -384,6 +400,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show events for the default mode (day)
         showEvents(events, savedViewMode, true, selectedDate);
     });
+
+    function isHistoryVisible() {
+        return selectedTab === 'tab-history';
+    }
+
+    function isHistoryLoaded() {
+        return historyContainer.innerHTML !== '';
+    }
 
     /**
      * Loads Wikipedia events based on date and language

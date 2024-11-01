@@ -1,5 +1,5 @@
 /**
- * ics-parser.js v20241021
+ * ics-parser.js v20241031
  *
  * Copyright (C) 2024 Wojciech Polak
  *
@@ -113,11 +113,32 @@ class ICalParser {
                         if (key === 'DTSTART' || key === 'DTEND' || key === 'DTSTAMP') {
                             value = this.parseDate(value);
                         }
-                        event[key] = this.unescapeICalString(value);
+                        if (typeof value === 'string' && value.startsWith('<html-blob>')) {
+                            event[key] = this.decodeHtmlBlob(
+                                this.unescapeICalString(value));
+                        }
+                        else {
+                            event[key] = this.unescapeICalString(value);
+                        }
                     }
                 }
             }
         });
+    }
+
+    /**
+     * Decoding HTML entities and stripping tags
+     * @param {string} value - The raw value field from ICS data.
+     * @returns {string}
+     */
+    decodeHtmlBlob(value) {
+        // Remove <html-blob> tags if they are present
+        value = value.replace(/<\/?html-blob>/gi, '');
+        // Decode HTML entities
+        const parser = new DOMParser();
+        const decoded = parser.parseFromString(value, 'text/html')
+            .body.textContent;
+        return decoded || value;
     }
 
     /**
