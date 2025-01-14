@@ -1,7 +1,7 @@
 /**
  * main.js
  *
- * On This Day (C) 2024 Wojciech Polak
+ * On This Day (C) 2024-2025 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -94,21 +94,29 @@ function showEvents(events, mode, changeTitle, today, container) {
      * @returns {string} - A string indicating the relative time (e.g., '2 years ago', 'in 1 year')
      */
     const getRelativeTime = (eventDate) => {
-        const diffYears = today.getUTCFullYear() - eventDate.getUTCFullYear();
-        const diffMonths = today.getUTCMonth() - eventDate.getUTCMonth();
-        if (diffYears === 0 && diffMonths > 0) {
-            return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
+        const timeDifference = eventDate - today;
+        const secondsDifference = Math.round(timeDifference / 1000);
+        const rtf = new Intl.RelativeTimeFormat(userLang, {numeric: 'auto'});
+        const thresholds = [
+            {unit: 'second', threshold: 60},
+            {unit: 'minute', threshold: 60},
+            {unit: 'hour', threshold: 24},
+            {unit: 'day', threshold: 30},
+            {unit: 'month', threshold: 12},
+            {unit: 'year', threshold: Number.POSITIVE_INFINITY}
+        ];
+        function _formatTimestamp(timestamp) {
+            let remainingTime = timestamp;
+            for (const {unit, threshold} of thresholds) {
+                if (Math.abs(remainingTime) < threshold) {
+                    const value = Math.round(remainingTime);
+                    return rtf.format(Math.round(value), unit);
+                }
+                remainingTime /= threshold;
+            }
+            return rtf.format(Math.round(remainingTime), 'year');
         }
-        else if (diffYears === 0) {
-            return ''; // Event is in the current year
-        }
-        else if (diffYears > 0) {
-            return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`; // Event is in the past
-        }
-        else {
-            const absDiffYears = Math.abs(diffYears);
-            return `in ${absDiffYears} year${absDiffYears > 1 ? 's' : ''}`; // Event is in the future
-        }
+        return _formatTimestamp(secondsDifference);
     };
 
     /**
@@ -243,16 +251,43 @@ function setTitle(mode) {
 }
 
 /**
+ * Function to convert ISO date strings to Date objects
+ * @param {string} key
+ * @param {string} value
+ * @returns {string | Date}
+ */
+function dateReviver(key, value) {
+    const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
+    if (typeof value === 'string' && isoDateRegex.test(value)) {
+        return new Date(value);
+    }
+    return value;
+}
+
+/**
  * Function to load iCalendar data
  * @param {string} url
  * @param {HTMLElement=} container
- * @returns {Promise<string>}
+ * @returns {Promise<IcsEvent[]>}
  */
 async function loadICalData(url, container) {
     container = container || document.getElementById('events-container');
-    container.innerHTML = '<div class="loading">Loading...</div>';
-    const response = await fetch(url);
-    return await response.text();
+
+    const loadingTimeout = setTimeout(() => {
+        container.innerHTML = '<div class="loading">Loading...</div>';
+    }, 100);
+
+    try {
+        const response = await fetch(url);
+        const text = await response.text();
+        return JSON.parse(text, dateReviver);
+    }
+    catch (error) {
+        throw error;
+    }
+    finally {
+        clearTimeout(loadingTimeout);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -337,11 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Load the iCalendar data and render the events
-    loadICalData('/fetch-ics').then(icalData => {
-        const parser = new ICalParser(icalData);
-        const events = parser.getEvents();
-        console.log('events', events);
-
+    loadICalData('/fetch-ics').then(events => {
         const radioButtons = document.querySelectorAll('input[name="view-mode"]');
         radioButtons.forEach(radio => {
             radio.addEventListener('change', (event) => {
@@ -418,10 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let date = selectedDate.toISOString().slice(0, 10);
         // Load the Wikipedia data and render the events
         loadICalData(`/fetch-wikipedia?date=${date}&lang=${userLang}`,
-            historyContainer).then(icalData => {
-            const parser = new ICalParser(icalData);
-            const events = parser.getEvents();
-            console.log('Wikipedia', events);
+            historyContainer).then(events => {
 
             // Show events for the default mode (day)
             showEvents(events, 'day', false, selectedDate, historyContainer);

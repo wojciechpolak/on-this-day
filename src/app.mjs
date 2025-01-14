@@ -1,7 +1,7 @@
 /**
  * app.mjs
  *
- * On This Day (C) 2024 Wojciech Polak
+ * On This Day (C) 2024-2025 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -25,6 +25,7 @@ import fetch from 'node-fetch';
 import path from 'path';
 import NodeCache from 'node-cache';
 import dotenv from 'dotenv';
+import ICalParser from './ics-parser.mjs';
 import logger from './logger.mjs';
 import wiki2ics from './wiki2ics.mjs';
 
@@ -48,7 +49,12 @@ app.get('/fetch-ics', async (req, res) => {
 
         // Check if the data is already in cache
         if (cache.has(cacheKey)) {
-            return res.send(cache.get(cacheKey));
+            const cachedData = cache.get(cacheKey);
+            if (req.query.raw) {
+                return res.type('text/calendar').send(cachedData);
+            }
+            const parser = new ICalParser(cachedData);
+            return res.send(parser.getEvents());
         }
 
         // Fetch data from all URLs if not in cache
@@ -71,7 +77,15 @@ app.get('/fetch-ics', async (req, res) => {
         // Store the combined data in cache
         cache.set(cacheKey, combinedData);
 
-        res.send(combinedData);
+        if (req.query.raw) {
+            return res.type('text/calendar').send(combinedData);
+        }
+
+        // Parse ICS
+        const parser = new ICalParser(combinedData);
+        const events = parser.getEvents();
+
+        res.send(events);
     }
     catch (error) {
         logger.error(error);
@@ -93,7 +107,12 @@ app.get('/fetch-wikipedia', async (req, res) => {
 
         // Check if the data is already in cache
         if (cache.has(cacheKey)) {
-            return res.send(cache.get(cacheKey));
+            const cachedData = cache.get(cacheKey);
+            if (req.query.raw) {
+                return res.type('text/calendar').send(cachedData);
+            }
+            const parser = new ICalParser(cachedData);
+            return res.send(parser.getEvents());
         }
 
         let sectionTitles = undefined;
@@ -103,7 +122,15 @@ app.get('/fetch-wikipedia', async (req, res) => {
         const wikiData = await wiki2ics(dateParam, sectionTitles, lang);
 
         cache.set(cacheKey, wikiData);
-        res.send(wikiData);
+
+        if (req.query.raw) {
+            return res.type('text/calendar').send(wikiData);
+        }
+
+        // Parse ICS
+        const parser = new ICalParser(wikiData);
+        const events = parser.getEvents();
+        res.send(events);
     }
     catch (error) {
         logger.error(error);

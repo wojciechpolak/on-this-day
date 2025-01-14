@@ -1,7 +1,7 @@
 /**
- * ics-parser.js v20241031
+ * ics-parser.mjs v20250114
  *
- * Copyright (C) 2024 Wojciech Polak
+ * Copyright (C) 2024-2025 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -25,7 +25,7 @@
  * @property {string} DESCRIPTION
  */
 
-class ICalParser {
+export default class ICalParser {
     constructor(icalData) {
         this.icalData = icalData;
         /** @type {Array<IcsEvent>} */
@@ -127,18 +127,43 @@ class ICalParser {
     }
 
     /**
-     * Decoding HTML entities and stripping tags
+     * Decoding HTML entities and stripping <html-blob> tags
      * @param {string} value - The raw value field from ICS data.
      * @returns {string}
      */
     decodeHtmlBlob(value) {
         // Remove <html-blob> tags if they are present
         value = value.replace(/<\/?html-blob>/gi, '');
-        // Decode HTML entities
-        const parser = new DOMParser();
-        const decoded = parser.parseFromString(value, 'text/html')
-            .body.textContent;
-        return decoded || value;
+
+        if (typeof window !== 'undefined' && typeof window.DOMParser !== 'undefined') {
+            // Browser environment: Use DOMParser to decode HTML entities
+            const parser = new DOMParser();
+            const decoded = parser.parseFromString(value, 'text/html')
+                .body.textContent;
+            return decoded || value;
+        }
+        else {
+            // Node.js environment: Use a custom decoder for HTML entities
+            return this.decodeHtmlEntities(value);
+        }
+    }
+
+    /**
+     * Simple HTML entities decoder for Node.js
+     * @param {string} str - The string containing HTML entities.
+     * @returns {string} - The decoded string.
+     */
+    decodeHtmlEntities(str) {
+        const entities = {
+            '&amp;': '&',
+            '&lt;': '<',
+            '&gt;': '>',
+            '&quot;': '"',
+            '&#39;': "'",
+        };
+        return str.replace(/&[a-zA-Z0-9#]+;/g, (match) => {
+            return entities[match] || match;
+        });
     }
 
     /**
