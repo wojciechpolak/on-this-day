@@ -24,7 +24,7 @@
     --color-event-background: #fff;
     --color-event-shadow: rgba(0, 0, 0, 0.1);
     --color-event-border: #ddd;
-    --color-event-date: #777;
+    --color-event-date: #757575;
     --color-tabs-border: #ddd;
     --color-button-bg: #fff;
     --color-button-text: #333;
@@ -57,6 +57,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    overflow-y: scroll !important;
 }
 
 h1 {
@@ -66,6 +67,12 @@ h1 {
 }
 
 #date-subtitle {
+    color: var(--color-text);
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
     cursor: pointer;
 }
 
@@ -100,12 +107,26 @@ nav.date .button:active {
     border-color: var(--color-button-bg);
 }
 
-nav.mode {
-    margin-top: 1em;
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mode {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: space-around;
+    border: none;
+    margin: 1em 0 0 0;
+    padding: 0;
 }
 
 label {
@@ -151,7 +172,8 @@ label {
 #history-container .event .rel-date {
     margin-top: 0;
 }
-.event p {
+.event p,
+.event footer {
     margin: 5px 0;
     font-size: 14px;
 }
@@ -177,19 +199,24 @@ label {
 }
 
 .tabs {
-    list-style-type: none;
     display: flex;
     justify-content: space-around;
     border-bottom: 2px solid var(--color-tabs-border);
+    margin: 16px 0;
     padding-left: 0;
 }
 
 .tab {
-    padding: 10px 50px;
-    cursor: pointer;
+    color: var(--color-text);
+    border: none;
     border-bottom: 3px solid transparent;
     transition: border-bottom 0.3s;
-    user-select: none;
+    width: 100%;
+    background: none;
+    margin: 0;
+    padding: 10px 50px;
+    font: inherit;
+    cursor: pointer;
 }
 
 .tab.active {

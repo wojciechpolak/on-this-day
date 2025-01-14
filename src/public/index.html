@@ -9,37 +9,60 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <h1 id="title">&nbsp;</h1>
+  <h1 id="title" aria-live="polite">&nbsp;</h1>
   <nav class="date">
-    <button class="button left">-</button>
-    <div id="date-subtitle">&nbsp;</div>
-    <button class="button right">+</button>
+    <button class="button left" aria-label="Previous Date" accesskey="p">-</button>
+    <button id="date-subtitle" aria-label="Reset to current date" accesskey="c">&nbsp;</button>
+    <button class="button right" aria-label="Next Date" accesskey="n">+</button>
   </nav>
-  <div class="tabs-container">
-    <ul class="tabs">
-      <li class="tab active" data-tab="tab-personal">Personal Events</li>
-    </ul>
-    <div class="tab-content active" id="tab-personal">
-      <nav class="mode">
+  <main class="tabs-container">
+    <nav class="tabs" role="tablist">
+      <button class="tab active"
+              data-tab="tab-personal"
+              role="tab"
+              accesskey="1"
+              aria-controls="tab-personal"
+              aria-selected="true">
+        Personal Events
+      </button>
+      <button class="tab"
+              data-tab="tab-history"
+              role="tab"
+              accesskey="2"
+              aria-controls="tab-history"
+              aria-selected="false">
+        Historical Events
+      </button>
+    </nav>
+    <div id="tab-personal"
+         class="tab-content active"
+         role="tabpanel"
+         aria-labelledby="tab-personal">
+      <fieldset class="mode">
+        <legend class="visually-hidden">View Mode</legend>
         <label>
-          <input type="radio" name="view-mode" value="day" checked> Day
+          <input type="radio" name="view-mode" value="day" accesskey="d" checked> Day
         </label>
         <label>
-          <input type="radio" name="view-mode" value="week"> Week
+          <input type="radio" name="view-mode" value="week" accesskey="w"> Week
         </label>
         <label>
-          <input type="radio" name="view-mode" value="month"> Month
+          <input type="radio" name="view-mode" value="month" accesskey="m"> Month
         </label>
         <label>
           <input type="radio" name="view-mode" value="dayOfMonth"> Day of the Month
         </label>
-      </nav>
-      <div id="events-container"></div>
+      </fieldset>
+      <div id="events-container" aria-live="polite" aria-label="Events"></div>
     </div>
-    <div class="tab-content" id="tab-history" style="display: none;">
-      <div id="history-container"></div>
+    <div id="tab-history"
+         class="tab-content"
+         role="tabpanel"
+         aria-labelledby="tab-history"
+         style="display: none;">
+      <div id="history-container" aria-live="polite" aria-label="Events"></div>
     </div>
-  </div>
+  </main>
   <script src="js/main.js"></script>
 </body>
 </html>

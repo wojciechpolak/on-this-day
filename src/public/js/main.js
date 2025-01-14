@@ -180,7 +180,7 @@ function showEvents(events, mode, changeTitle, today, container) {
     }
 
     filteredEvents.forEach(event => {
-        const eventElement = document.createElement('div');
+        const eventElement = document.createElement('article');
         eventElement.className = 'event';
         const relativeTime = getRelativeTime(event.DTSTART || event.DTEND);
         const description = event['X-ALT-DESC'] || parseInputText(event.DESCRIPTION || '');
@@ -190,7 +190,7 @@ function showEvents(events, mode, changeTitle, today, container) {
                <span class="rel-date">${relativeTime ? `${relativeTime}</span>` : ''}
             </h2>
             <p class="description">${description}</p>
-            <p><time>${formatEventDateRange(event.DTSTART, event.DTEND || event.DTSTART)}</time></p>
+            <footer><time>${formatEventDateRange(event.DTSTART, event.DTEND || event.DTSTART)}</time></footer>
         `;
         container.appendChild(eventElement);
     });
@@ -294,54 +294,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const STORAGE_KEY_VIEW_MODE = 'otdViewMode';
 
     const historyContainer = document.getElementById('history-container');
-    const tabsContainer = document.querySelector('.tabs');
-    const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
     const shouldShowHistoryTab = true;
     let selectedTab = 'tab-personal';
     let selectedDate = new Date();
 
-    // Add second tab dynamically if condition is met
-    if (shouldShowHistoryTab) {
-        const secondTab = document.createElement('li');
-        secondTab.classList.add('tab');
-        secondTab.setAttribute('data-tab', 'tab-history');
-        secondTab.innerText = 'Historical Events';
-        tabsContainer.appendChild(secondTab);
-
-        // Re-select tabs to include the new one
-        const updatedTabs = document.querySelectorAll('.tab');
-
-        updatedTabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-                selectedTab = this.getAttribute('data-tab');
-                if (selectedTab === 'tab-history') {
-                    if (!isHistoryLoaded()) {
-                        loadWikipediaEvents();
-                    }
-                    setTitle();
-                }
-                else {
-                    setTitle(localStorage.getItem(STORAGE_KEY_VIEW_MODE));
-                }
-
-                updatedTabs.forEach(tab => tab.classList.remove('active'));
-                this.classList.add('active');
-
-                tabContents.forEach(content => {
-                    if (content.id === selectedTab) {
-                        content.style.display = 'block';
-                    }
-                    else {
-                        content.style.display = 'none';
-                    }
-                });
-            });
-        });
-    }
-    else {
+    if (!shouldShowHistoryTab) {
+        document.querySelector('.tab[data-tab="tab-history"]').remove();
         document.getElementById('tab-history').remove();
     }
+
+    const tabs = document.querySelectorAll('.tab');
 
     // Set initial tab event listeners
     tabs.forEach(tab => {
@@ -357,8 +320,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTitle(localStorage.getItem(STORAGE_KEY_VIEW_MODE));
             }
 
-            tabs.forEach(tab => tab.classList.remove('active'));
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                tab.setAttribute('aria-selected', 'false');
+            });
             this.classList.add('active');
+            this.setAttribute('aria-selected', 'true');
 
             tabContents.forEach(content => {
                 if (content.id === selectedTab) {
@@ -450,7 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Load the Wikipedia data and render the events
         loadICalData(`/fetch-wikipedia?date=${date}&lang=${userLang}`,
             historyContainer).then(events => {
-
             // Show events for the default mode (day)
             showEvents(events, 'day', false, selectedDate, historyContainer);
         });
