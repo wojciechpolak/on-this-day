@@ -1,7 +1,7 @@
 /**
- * wiki2ics.mjs
+ * wiki2ics.ts
  *
- * On This Day (C) 2024 Wojciech Polak
+ * On This Day (C) 2024-2025 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,28 +17,57 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import fetch from 'node-fetch';
 import ical from 'ical-generator';
-import { load } from 'cheerio';
 import { DateTime } from 'luxon';
-import logger from './logger.mjs';
+import logger from './logger';
+import * as cheerio from 'cheerio';
 
-const wikiExtractor = {
+const wikiExtractor: Record<string, RegExp> = {
     en: new RegExp('^(\\d+)(\\s*BC)?\\s*–\\s*(.*)'),
     pl: new RegExp('^(\\d+)(\\s*BC)?\\s*–\\s*(.*)'),
     es: new RegExp('^(\\d+)(\\s*BC)?\\s*:\\s*(.*)'),
     de: new RegExp('^(\\d+)(\\s*BC)?\\s*:\\s*(.*)'),
     fr: new RegExp('^(\\d+)(\\s*BC)?\\s*:\\s*(.*)'),
+};
+
+interface WikiSection {
+    anchor: string;
+    byteoffset: number;
+    fromtitle: string;
+    index: string;
+    level: string;
+    line: string;
+    linkAnchor: string;
+    number: string;
+    toclevel: number;
+}
+
+interface WikiSectionsResponse {
+    parse: {
+        pageid: number;
+        sections: WikiSection[];
+        showtoc: string;
+        text: {
+            '*': string;
+        };
+        title: string;
+    },
+    error?: {
+        code: string;
+        info: string;
+        '*': string;
+    };
+}
+
+interface WikiEvent {
+    html: string;
+    text: string;
 }
 
 /**
  * Fetches Wikipedia's On This Day events and converts them to ICS
- * @param dateParam
- * @param {string[]=} sectionTitles
- * @param {string=} lang
- * @returns {Promise<string>}
  */
-async function wiki2ics(dateParam, sectionTitles, lang='en') {
+async function wiki2ics(dateParam: string, sectionTitles: string[], lang='en'): Promise<string> {
 
     // Parse the date parameter or use the current date
     let dateObj;
@@ -52,7 +81,7 @@ async function wiki2ics(dateParam, sectionTitles, lang='en') {
         dateObj = DateTime.local();
     }
 
-    sectionTitles = sectionTitles || getSectionTitles(lang);
+    sectionTitles = sectionTitles.length && sectionTitles || getSectionTitles(lang);
     logger.debug('sectionTitles: %s', sectionTitles);
 
     let dateStr;
@@ -92,7 +121,7 @@ async function wiki2ics(dateParam, sectionTitles, lang='en') {
     }
 
     // Fetch and parse events
-    const allEvents = {};
+    const allEvents: Record<string, WikiEvent[]> = {};
     for (const sectionTitle of sectionTitles) {
         if (!(sectionTitle in sectionIndexes)) {
             logger.info(`Section '${sectionTitle}' not found.`);
@@ -118,7 +147,7 @@ async function wiki2ics(dateParam, sectionTitles, lang='en') {
             // '1096 BC – Event description'
             const match = eventText.match(wikiExtractor[lang] || wikiExtractor['en']);
             let descriptionText;
-            let descriptionHtml = eventHtml;
+            const descriptionHtml = eventHtml;
             let eventYear;
             if (match) {
                 const yearStr = match[1];
@@ -158,7 +187,7 @@ async function wiki2ics(dateParam, sectionTitles, lang='en') {
                     plain: descriptionText,
                     html: descriptionHtml,
                 },
-                uid: generateUID(),
+                id: generateUID(),
             });
         }
     }
@@ -171,16 +200,15 @@ async function wiki2ics(dateParam, sectionTitles, lang='en') {
  * Generates UID
  * @returns {string}
  */
-function generateUID() {
+function generateUID(): string {
     return `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
 
 /**
  * Gets translated section titles
- * @param {string=} lang
  */
-function getSectionTitles(lang='en') {
-    const titles = {
+function getSectionTitles(lang='en'): string[] {
+    const titles: Record<string, string[]> = {
         en: [
             'Events',
             'Births',
@@ -213,12 +241,9 @@ function getSectionTitles(lang='en') {
 
 /**
  * Gets section indexes
- * @param {string} apiUrl
- * @param {string} title
- * @param {string[]} sectionTitles
- * @returns {Promise<{}>}
  */
-async function getSectionIndexes(apiUrl, title, sectionTitles) {
+async function getSectionIndexes(apiUrl: string, title: string,
+                                 sectionTitles: string[]): Promise<Record<string, string>> {
     const params = new URLSearchParams({
         action: 'parse',
         page: title,
@@ -226,8 +251,7 @@ async function getSectionIndexes(apiUrl, title, sectionTitles) {
         format: 'json',
     });
 
-    const response = await fetch(`${apiUrl}?${params}`);
-    const data = await response.json();
+    const data: WikiSectionsResponse = await $fetch(`${apiUrl}?${params}`, {responseType: 'json'});
 
     if (data.error) {
         logger.error(`Error fetching sections: ${data.error.info}`);
@@ -235,7 +259,7 @@ async function getSectionIndexes(apiUrl, title, sectionTitles) {
     }
 
     const sections = data.parse.sections;
-    const sectionIndexes = {};
+    const sectionIndexes: Record<string, string> = {};
 
     for (const section of sections) {
         if (sectionTitles.includes(section.line.trim())) {
@@ -248,12 +272,9 @@ async function getSectionIndexes(apiUrl, title, sectionTitles) {
 
 /**
  * Gets section content
- * @param {string} apiUrl
- * @param {string} title
- * @param {string} sectionIndex
- * @returns {Promise<*|string>}
  */
-async function getSectionContent(apiUrl, title, sectionIndex) {
+async function getSectionContent(apiUrl: string, title: string,
+                                 sectionIndex: string): Promise<string> {
     const params = new URLSearchParams({
         action: 'parse',
         page: title,
@@ -262,8 +283,7 @@ async function getSectionContent(apiUrl, title, sectionIndex) {
         format: 'json',
     });
 
-    const response = await fetch(`${apiUrl}?${params}`);
-    const data = await response.json();
+    const data: WikiSectionsResponse = await $fetch(`${apiUrl}?${params}`, {responseType: 'json'});
 
     if (data.error) {
         logger.error(`Error fetching section content: ${data.error.info}`);
@@ -275,23 +295,20 @@ async function getSectionContent(apiUrl, title, sectionIndex) {
 
 /**
  * Extracts events from content
- * @param {string} content
- * @param {string} title
- * @param {string} lang
- * @returns {*[]}
  */
-function extractEventsFromContent(content, title, lang) {
-    const $ = load(content);
-    const events = [];
+function extractEventsFromContent(content: string, title: string, lang: string): WikiEvent[] {
+    const $ = cheerio.load(content);
+    const events: WikiEvent[] = [];
 
-    $('li').each((i, elem) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    $('li').each((_i: number, elem: any) => {
         // Remove all <sup> elements within this <li>
         $(elem).find('sup').remove();
 
         // Process all <a> tags to include full URLs
-        $(elem).find('a').each((i, link) => {
+        $(elem).find('a').each((_i, link) => {
             const $link = $(link);
-            const href = $link.attr('href');
+            const href: string = $link.attr('href') as string;
 
             // Build the full URL
             let fullUrl = href;
@@ -316,10 +333,11 @@ function extractEventsFromContent(content, title, lang) {
         });
 
         // Remove all tags except <a> by unwrapping them
-        unwrapElements($, elem);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        unwrapElements($ as any, elem);
 
         const text = $(elem).text().replace(/\s+/g, ' ').trim();
-        const htmlContent = $(elem).html();
+        const htmlContent = $(elem).html() as string;
 
         // Check if text starts with a year and an en dash
         if ((wikiExtractor[lang] || wikiExtractor['en']).test(text)) {
@@ -338,16 +356,15 @@ function extractEventsFromContent(content, title, lang) {
 
 /**
  * Recursive function to unwrap all elements except <a>
- * @param $
- * @param element
  */
-function unwrapElements($, element) {
-    $(element).contents().each(function () {
-        if (this.type === 'tag' && this.name !== 'a') {
+function unwrapElements($: cheerio.CheerioAPI, element: any) { // eslint-disable-line
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    $(element).contents().each(function (_index: number, elem: any) {
+        if (elem.type === 'tag' && elem.name !== 'a') {
             // Recursively process child elements
-            unwrapElements($, this);
+            unwrapElements($, elem);
             // Replace the element with its contents
-            $(this).replaceWith($(this).contents());
+            $(elem).replaceWith($(elem).contents());
         }
     });
 }
@@ -359,11 +376,11 @@ function unwrapElements($, element) {
  * @param {number} day
  * @returns {null|Date}
  */
-function createDate(year, month, day) {
+function createDate(year: number, month: number, day: number): null | Date {
     try {
         return new Date(Date.UTC(year, month - 1, day));
     }
-    catch (e) {
+    catch {
         return null;
     }
 }

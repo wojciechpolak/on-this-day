@@ -1,21 +1,42 @@
 {
   "name": "otd",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "On This Day...",
   "private": true,
-  "main": "src/app.mjs",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/app.mjs"
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "start": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest --run",
+    "typecheck": "nuxi typecheck"
   },
   "dependencies": {
+    "@nuxt/eslint": "^0.7.5",
+    "@vite-pwa/nuxt": "^0.10.6",
     "cheerio": "^1.0.0",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "ical-generator": "^8.0.1",
+    "eslint": "^9.18.0",
+    "ical-generator": "^8.1.0",
     "luxon": "^3.5.0",
     "node-cache": "^5.1.2",
-    "node-fetch": "^3.3.2",
-    "winston": "^3.15.0"
+    "nuxt": "^3.15.2",
+    "vue": "latest",
+    "vue-router": "latest",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^3.15.4",
+    "@types/cheerio": "^0.22.35",
+    "@types/luxon": "^3.4.2",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^16.7.1",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8",
+    "vue-tsc": "^2.1.10"
   }
 }

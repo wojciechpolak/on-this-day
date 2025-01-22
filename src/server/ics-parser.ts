@@ -1,5 +1,5 @@
 /**
- * ics-parser.mjs v20250114
+ * ics-parser.ts v20250121
  *
  * Copyright (C) 2024-2025 Wojciech Polak
  *
@@ -17,16 +17,20 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * @typedef {object} IcsEvent
- * @property {Date} DTSTART
- * @property {Date} DTEND
- * @property {string} SUMMARY
- * @property {string} DESCRIPTION
- */
+export interface IcsEvent {
+    DTSTART: Date;
+    DTEND: Date;
+    SUMMARY: string;
+    DESCRIPTION: string;
+    [key: string]: unknown;
+}
 
 export default class ICalParser {
-    constructor(icalData) {
+
+    private icalData: string;
+    private events: IcsEvent[];
+
+    constructor(icalData: string) {
         this.icalData = icalData;
         /** @type {Array<IcsEvent>} */
         this.events = [];
@@ -39,7 +43,7 @@ export default class ICalParser {
      * @param {boolean} time
      * @returns {undefined|Date}
      */
-    parseDate(dateString, time = true) {
+    parseDate(dateString: string, time: boolean = true): undefined | Date {
         if (!dateString) {
             return undefined;
         }
@@ -59,7 +63,7 @@ export default class ICalParser {
 
     parseICal() {
         // Split the lines and handle line continuations
-        const lines = this.icalData.split(/\r\n|\n|\r/).reduce((acc, line) => {
+        const lines = this.icalData.split(/\r\n|\n|\r/).reduce((acc: string[], line) => {
             if (line.startsWith(' ') || line.startsWith('\t')) {
                 acc[acc.length - 1] += line.slice(1);
             }
@@ -69,16 +73,15 @@ export default class ICalParser {
             return acc;
         }, []);
 
-        let event = null;
+        let event: IcsEvent;
         let insideAlarm = false;
 
         lines.forEach(line => {
             if (line.startsWith('BEGIN:VEVENT')) {
-                event = {};
+                event = {} as IcsEvent;
             }
             else if (line.startsWith('END:VEVENT')) {
                 this.events.push(event);
-                event = null;
             }
             else if (line.startsWith('BEGIN:VALARM')) {
                 insideAlarm = true;
@@ -88,7 +91,7 @@ export default class ICalParser {
             }
             else if (event && !insideAlarm) {
                 const [key, ...valueParts] = line.split(':');
-                let value = valueParts.join(':');
+                let value: Date | string | undefined = valueParts.join(':');
                 if (key && value) {
                     if (key.includes(';VALUE=DATE') ||
                         key.includes(';TZID=')) {
@@ -111,14 +114,14 @@ export default class ICalParser {
                     }
                     else {
                         if (key === 'DTSTART' || key === 'DTEND' || key === 'DTSTAMP') {
-                            value = this.parseDate(value);
+                            value = this.parseDate(value.padStart(16, '0'));
                         }
                         if (typeof value === 'string' && value.startsWith('<html-blob>')) {
                             event[key] = this.decodeHtmlBlob(
-                                this.unescapeICalString(value));
+                                this.unescapeICalString(value) as string);
                         }
                         else {
-                            event[key] = this.unescapeICalString(value);
+                            event[key] = this.unescapeICalString(value as string);
                         }
                     }
                 }
@@ -131,21 +134,11 @@ export default class ICalParser {
      * @param {string} value - The raw value field from ICS data.
      * @returns {string}
      */
-    decodeHtmlBlob(value) {
+    decodeHtmlBlob(value: string): string {
         // Remove <html-blob> tags if they are present
         value = value.replace(/<\/?html-blob>/gi, '');
-
-        if (typeof window !== 'undefined' && typeof window.DOMParser !== 'undefined') {
-            // Browser environment: Use DOMParser to decode HTML entities
-            const parser = new DOMParser();
-            const decoded = parser.parseFromString(value, 'text/html')
-                .body.textContent;
-            return decoded || value;
-        }
-        else {
-            // Node.js environment: Use a custom decoder for HTML entities
-            return this.decodeHtmlEntities(value);
-        }
+        // Node.js environment: Use a custom decoder for HTML entities
+        return this.decodeHtmlEntities(value);
     }
 
     /**
@@ -153,15 +146,15 @@ export default class ICalParser {
      * @param {string} str - The string containing HTML entities.
      * @returns {string} - The decoded string.
      */
-    decodeHtmlEntities(str) {
-        const entities = {
+    decodeHtmlEntities(str: string): string {
+        const entities: Record<string, string> = {
             '&amp;': '&',
             '&lt;': '<',
             '&gt;': '>',
             '&quot;': '"',
             '&#39;': "'",
         };
-        return str.replace(/&[a-zA-Z0-9#]+;/g, (match) => {
+        return str.replace(/&[a-zA-Z0-9#]+;/g, (match: string) => {
             return entities[match] || match;
         });
     }
@@ -171,7 +164,7 @@ export default class ICalParser {
      * @param {string} str
      * @returns {string}
      */
-    unescapeICalString(str) {
+    unescapeICalString(str: string | Date): string | Date {
         if (typeof str !== 'string') {
             return str;
         }

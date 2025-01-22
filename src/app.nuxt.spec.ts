@@ -1,7 +1,7 @@
 /**
- * logger.mjs
+ * app.nuxt.spec.ts
  *
- * On This Day (C) 2024 Wojciech Polak
+ * On This Day (C) 2025 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,27 +17,14 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*global process */
+import { describe, it, expect } from 'vitest';
+import { mountSuspended } from '@nuxt/test-utils/runtime';
 
-import {createLogger, format, transports} from 'winston';
+import AppComponent from './app.vue';
 
-const {combine, timestamp, printf} = format;
-
-// Define custom log format
-const logFormat = printf(({level, message, timestamp}) => {
-    return `${timestamp} - ${level} - ${message}`;
+describe('app.vue', () => {
+    it('renders the title correctly', async () => {
+        const wrapper = await mountSuspended(AppComponent);
+        expect(wrapper.text()).toContain('On This Day');
+    });
 });
-
-const logger = createLogger({
-    level: process.env.LOG_LEVEL ?? 'info',
-    format: combine(
-        timestamp(),
-        format.splat(),
-        logFormat
-    ),
-    transports: [
-        new transports.Console(),
-    ]
-});
-
-export default logger;
