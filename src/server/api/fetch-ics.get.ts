@@ -36,15 +36,16 @@ export default defineEventHandler(async (event) => {
     const cacheTtl = config.appCacheTtl || 86400;
 
     if (!icsUrlsEnv) {
-        logger.error('Env APP_ICS_URLS not specified');
-        return 'Error fetching ICS data';
+        const msg = 'Env APP_ICS_URLS not specified';
+        logger.error(msg);
+        throw createError(msg);
     }
 
     setResponseHeader(event, 'Cache-Control', 'max-age=' + cacheTtl);
 
     try {
         const icsUrls = icsUrlsEnv.split(',').map((url) => url.trim());
-        const cacheKey = 'combinedIcsData';
+        const cacheKey = 'combinedIcsData' + icsUrls.length;
 
         // If already in cache, return it
         if (cache.has(cacheKey)) {
@@ -82,21 +83,13 @@ export default defineEventHandler(async (event) => {
             return event.node.res.end(combinedData);
         }
 
-        let events;
-        try {
-            const parser = new ICalParser(combinedData);
-            events = parser
-                .getEvents()
-                .sort(sortEvents);
-        }
-        catch (err) {
-            logger.error('Error parsing ICS data:', err);
-            return null;
-        }
-        return events;
+        const parser = new ICalParser(combinedData);
+        return parser
+            .getEvents()
+            .sort(sortEvents);
     }
     catch (error) {
         logger.error(error);
-        return 'Error fetching ICS data';
+        throw createError(error || 'Error fetching ICS data');
     }
 });

@@ -81,6 +81,6 @@ export default defineEventHandler(async (event) => {
     }
     catch (error) {
         logger.error(error);
-        return 'Error fetching Wikipedia data';
+        throw createError(error || 'Error fetching Wikipedia data');
     }
 });

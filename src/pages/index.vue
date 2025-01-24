@@ -125,6 +125,13 @@ watch(
     {immediate: true}
 );
 
+type CustomError = Error & {data: {message: string}};
+
+const getIcsErrorMessage = computed(() => {
+    const err = icsError.value as CustomError;
+    return err.data?.message || err.message || 'Connection Error';
+});
+
 // ------------------------------
 // Fetch ICS for Wikipedia events
 // ------------------------------
@@ -165,6 +172,11 @@ watch(
     },
     {immediate: true}
 );
+
+const getWikiErrorMessage = computed(() => {
+    const err = wikiError.value as CustomError;
+    return err.data?.message || err.message || 'Connection Error';
+});
 
 // Re-fetch Wikipedia data when the user changes the date:
 watch(selectedDate, async () => {
@@ -459,7 +471,7 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                 <div id="events-container" aria-live="polite" aria-label="Personal Events">
                     <div v-if="showLoading" class="loading">Loading...</div>
                     <div v-else-if="icsError" class="no-events-message">
-                        Connection Error
+                        {{ getIcsErrorMessage }}
                     </div>
                     <div v-else>
                         <div
@@ -489,7 +501,7 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                 <div id="history-container" aria-live="polite" aria-label="Historical Events">
                     <div v-if="wikiStatus === 'pending'" class="loading">Loading...</div>
                     <div v-else-if="wikiError" class="no-events-message">
-                        Connection Error
+                        {{ getWikiErrorMessage }}
                     </div>
                     <div v-else>
                         <div
