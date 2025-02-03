@@ -1,7 +1,7 @@
 /**
- * logger.ts
+ * server/cache.ts
  *
- * On This Day (C) 2024-2025 Wojciech Polak
+ * On This Day (C) 2025 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,25 +17,9 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createLogger, format, transports} from 'winston';
+import NodeCache from 'node-cache';
 
-const {combine, timestamp, printf} = format;
+const cacheTtl = parseInt(process.env.appCacheTtl as string, 10) || 86400;
+const cache = new NodeCache({ stdTTL: cacheTtl });
 
-// Define custom log format
-const logFormat = printf(({level, message, timestamp}) => {
-    return `${timestamp} - ${level} - ${message}`;
-});
-
-const logger = createLogger({
-    level: process.env.LOG_LEVEL ?? 'info',
-    format: combine(
-        timestamp(),
-        format.splat(),
-        logFormat
-    ),
-    transports: [
-        new transports.Console(),
-    ]
-});
-
-export default logger;
+export default cache;

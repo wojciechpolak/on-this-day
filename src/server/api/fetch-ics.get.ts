@@ -19,14 +19,12 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import NodeCache from 'node-cache';
 
 import ICalParser from '~/server/ics-parser';
+import cache from '~/server/cache';
 import logger from '~/server/logger';
 import { sortEvents } from '~/utils/helpers';
 import { useRuntimeConfig } from '#imports';
-
-const cache = new NodeCache();
 
 export default defineEventHandler(async (event) => {
     const config = useRuntimeConfig();

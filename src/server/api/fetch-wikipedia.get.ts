@@ -17,15 +17,13 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import NodeCache from 'node-cache';
 import { useRuntimeConfig } from '#imports';
 
 import ICalParser from '~/server/ics-parser';
+import cache from '~/server/cache';
 import logger from '~/server/logger';
 import wiki2ics from '~/server/wiki2ics';
 import { sortEvents } from '~/utils/helpers';
-
-const cache = new NodeCache();
 
 export default defineEventHandler(async (event) => {
     const query = getQuery(event);
