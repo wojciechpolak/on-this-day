@@ -95,7 +95,7 @@ export default class ICalParser {
                 if (key && value) {
                     if (key.includes(';VALUE=DATE') ||
                         key.includes(';TZID=')) {
-                        const dateKey = key.split(';')[0]; // Extract the actual key (DTSTART or DTEND)
+                        const dateKey = key.split(';')[0]!; // Extract the actual key (DTSTART or DTEND)
                         if (dateKey === 'DTSTART' || dateKey === 'DTEND' || dateKey === 'DTSTAMP') {
                             value = this.parseDate(value, false);
                         }
@@ -103,12 +103,12 @@ export default class ICalParser {
                         event[`${dateKey}_VALUE`] = 'DATE'; // Mark this as a DATE value
                     }
                     else if (key.includes(';VALUE=TEXT')) {
-                        const k = key.split(';')[0];
+                        const k = key.split(';')[0]!;
                         event[k] = this.unescapeICalString(value);
                         event[`${k}_VALUE`] = 'TEXT';
                     }
                     else if (key.includes(';FMTTYPE=text/html')) {
-                        const k = key.split(';')[0];
+                        const k = key.split(';')[0]!;
                         event[k] = this.unescapeICalString(value);
                         event[`${k}_VALUE`] = 'HTML';
                     }

@@ -128,7 +128,7 @@ async function wiki2ics(dateParam: string, sectionTitles: string[], lang='en'): 
             allEvents[sectionTitle] = [];
             continue;
         }
-        const sectionIndex = sectionIndexes[sectionTitle];
+        const sectionIndex = sectionIndexes[sectionTitle]!;
         const content = await getSectionContent(apiUrl, dateStr, sectionIndex);
         const events = extractEventsFromContent(content, dateStr, lang);
         logger.debug(`Extracted ${events.length} events from section ${sectionTitle}`);
@@ -145,12 +145,12 @@ async function wiki2ics(dateParam: string, sectionTitles: string[], lang='en'): 
 
             // Match patterns like '1096 – Event description' or
             // '1096 BC – Event description'
-            const match = eventText.match(wikiExtractor[lang] || wikiExtractor['en']);
+            const match = eventText.match(wikiExtractor[lang] || wikiExtractor['en'] || '');
             let descriptionText;
             const descriptionHtml = eventHtml;
             let eventYear;
             if (match) {
-                const yearStr = match[1];
+                const yearStr = match[1] || '';
                 const bc = match[2];
                 descriptionText = match[3] || '';
                 // Clean description
@@ -236,7 +236,7 @@ function getSectionTitles(lang='en'): string[] {
             'Décès',
         ],
     };
-    return titles[lang] || titles['en'];
+    return titles[lang] || titles['en'] || [''];
 }
 
 /**
@@ -339,8 +339,8 @@ function extractEventsFromContent(content: string, title: string, lang: string):
         const text = $(elem).text().replace(/\s+/g, ' ').trim();
         const htmlContent = $(elem).html() as string;
 
-        // Check if text starts with a year and an en dash
-        if ((wikiExtractor[lang] || wikiExtractor['en']).test(text)) {
+        // Check if a text starts with a year and an en dash
+        if ((wikiExtractor[lang] || wikiExtractor['en'] || / /).test(text)) {
             // Remove extra spaces before punctuation
             const cleanedText = text
                 .replace(/\s+([.,])/g, '$1')

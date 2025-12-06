@@ -39,7 +39,7 @@ export function parseInputText(input: string) {
       '"': '&quot;',
       "'": '&#039;',
     };
-    return str.replace(/[&<>"']/g, (char) => replacements[char]);
+    return str.replace(/[&<>"']/g, (char) => replacements[char] ?? '');
   }
 
   function linkify(str: string) {

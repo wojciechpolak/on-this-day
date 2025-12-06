@@ -43,7 +43,7 @@ export default defineNuxtRouteMiddleware(() => {
 
             if (acceptLanguage) {
                 // Extract the first language from the header
-                return acceptLanguage.split(',')[0].split(';')[0].trim();
+                return acceptLanguage.split(',')[0]?.split(';')[0]?.trim() ?? 'en';
             }
 
             // Fallback if header is missing
