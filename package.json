@@ -17,26 +17,26 @@
     "typecheck": "nuxi typecheck"
   },
   "dependencies": {
-    "@nuxt/eslint": "^0.7.5",
-    "@vite-pwa/nuxt": "^0.10.6",
-    "cheerio": "^1.0.0",
+    "@nuxt/eslint": "^1.11.0",
+    "@vite-pwa/nuxt": "^1.1.0",
+    "cheerio": "^1.1.2",
     "eslint": "^9.18.0",
-    "ical-generator": "^8.1.0",
-    "luxon": "^3.5.0",
+    "ical-generator": "^8.1.1",
+    "luxon": "^3.7.2",
     "node-cache": "^5.1.2",
-    "nuxt": "^3.15.2",
+    "nuxt": "^4.2.1",
     "vue": "latest",
     "vue-router": "latest",
-    "winston": "^3.17.0"
+    "winston": "^3.19.0"
   },
   "devDependencies": {
-    "@nuxt/test-utils": "^3.15.4",
+    "@nuxt/test-utils": "^3.21.0",
     "@types/cheerio": "^0.22.35",
-    "@types/luxon": "^3.4.2",
+    "@types/luxon": "^3.7.1",
     "@vue/test-utils": "^2.4.6",
-    "happy-dom": "^16.7.1",
-    "typescript": "^5.7.3",
-    "vitest": "^2.1.8",
-    "vue-tsc": "^2.1.10"
+    "happy-dom": "^20.0.11",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^3.1.8"
   }
 }

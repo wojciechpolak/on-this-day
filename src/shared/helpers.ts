@@ -17,7 +17,7 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type { IcsEvent } from '~/server/ics-parser';
+import type { IcsEvent } from '#shared/ics-parser';
 
 /**
  * Events sorter

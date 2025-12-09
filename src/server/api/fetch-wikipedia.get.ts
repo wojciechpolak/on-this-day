@@ -19,11 +19,11 @@
 
 import { useRuntimeConfig } from '#imports';
 
-import ICalParser from '~/server/ics-parser';
-import cache from '~/server/cache';
-import logger from '~/server/logger';
-import wiki2ics from '~/server/wiki2ics';
-import { sortEvents } from '~/utils/helpers';
+import ICalParser from '#shared/ics-parser';
+import cache from '../cache';
+import logger from '../logger';
+import wiki2ics from '../wiki2ics';
+import { sortEvents } from '#shared/helpers';
 
 export default defineEventHandler(async (event) => {
     const query = getQuery(event);

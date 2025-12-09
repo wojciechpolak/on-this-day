@@ -1,7 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-    compatibilityDate: '2024-11-01',
-    srcDir: 'src',
+    compatibilityDate: '2025-07-15',
+    srcDir: 'src/app',
+    serverDir: 'src/server',
+    dir: {
+        public: 'src/public',
+        shared: 'src/shared',
+    },
     devtools: {enabled: true},
 
     typescript: {
@@ -10,7 +15,7 @@ export default defineNuxtConfig({
 
     telemetry: false,
     ssr: !!process.env.NUXT_SSR,
-    css: ['~/public/css/styles.css'],
+    css: ['~/assets/css/styles.css'],
 
     nitro: {
         compressPublicAssets: true,

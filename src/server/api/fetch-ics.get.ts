@@ -20,10 +20,10 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-import ICalParser from '~/server/ics-parser';
-import cache from '~/server/cache';
-import logger from '~/server/logger';
-import { sortEvents } from '~/utils/helpers';
+import ICalParser from '#shared/ics-parser';
+import cache from '../cache';
+import logger from '../logger';
+import { sortEvents } from '#shared/helpers';
 import { useRuntimeConfig } from '#imports';
 
 export default defineEventHandler(async (event) => {

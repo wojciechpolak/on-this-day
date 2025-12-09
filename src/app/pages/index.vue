@@ -22,9 +22,9 @@
 <script setup lang="ts">
 
 import { ref, computed, watch } from 'vue';
-import { parseInputText } from '~/utils/helpers';
+import { parseInputText } from '#shared/helpers';
 import { useLanguage } from '~/composables/useLanguage';
-import type { IcsEvent } from '~/server/ics-parser';
+import type { IcsEvent } from '#shared/ics-parser';
 
 const selectedTab = ref<'tab-personal' | 'tab-history'>('tab-personal');
 const shouldShowHistoryTab = true;
