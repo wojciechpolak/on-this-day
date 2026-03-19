@@ -30,10 +30,10 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock('node-cache', () => ({
-  default: vi.fn().mockImplementation((options: { stdTTL: number }) => {
+  default: function NodeCacheMock(options: { stdTTL: number }) {
     mocks.nodeCache(options);
     return mocks.instance;
-  }),
+  },
 }));
 
 async function loadCacheModule() {
