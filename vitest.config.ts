@@ -34,5 +34,7 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
+    include: ['src/**/*.{test,spec}.ts', 'src/**/*.{test,spec}.vue'],
+    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**', 'test-results/**'],
   },
 });

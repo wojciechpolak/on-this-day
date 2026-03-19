@@ -8,13 +8,17 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "start": "nuxt dev",
+    "dev:e2e": "nuxt dev --hostname 0.0.0.0 --port 4173",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest --run",
-    "typecheck": "nuxi typecheck"
+    "typecheck": "nuxi typecheck",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@nuxt/eslint": "^1.11.0",
@@ -31,6 +35,7 @@
   },
   "devDependencies": {
     "@nuxt/test-utils": "^3.21.0",
+    "@playwright/test": "^1.58.2",
     "@types/cheerio": "^0.22.35",
     "@types/luxon": "^3.7.1",
     "@vue/test-utils": "^2.4.6",
