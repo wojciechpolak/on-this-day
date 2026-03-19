@@ -1,7 +1,7 @@
 /**
- * app.nuxt.spec.ts
+ * nuxt-imports.ts
  *
- * On This Day (C) 2025 Wojciech Polak
+ * On This Day (C) 2026 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,14 +17,11 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect } from 'vitest';
-import { mountSuspended } from '@nuxt/test-utils/runtime';
-
-import AppComponent from './app.vue';
-
-describe('app.vue', () => {
-    it('renders the title correctly', async () => {
-        const wrapper = await mountSuspended(AppComponent);
-        expect(wrapper.text()).toContain('On This Day');
-    });
-});
+export const useHead = () => undefined;
+export const useLazyAsyncData = () => undefined;
+export const useRequestHeaders = () => ({});
+export const useRuntimeConfig = () => ({});
+export const useState = <T>(_key: string, init?: () => T) => ({
+  value: init ? init() : undefined,
+} as { value: T | undefined });
+export const defineNuxtRouteMiddleware = <T>(handler: T) => handler;

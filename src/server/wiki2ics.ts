@@ -1,7 +1,7 @@
 /**
  * wiki2ics.ts
  *
- * On This Day (C) 2024-2025 Wojciech Polak
+ * On This Day (C) 2024-2026 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -59,7 +59,7 @@ interface WikiSectionsResponse {
     };
 }
 
-interface WikiEvent {
+export interface WikiEvent {
     html: string;
     text: string;
 }
@@ -207,7 +207,7 @@ function generateUID(): string {
 /**
  * Gets translated section titles
  */
-function getSectionTitles(lang='en'): string[] {
+export function getSectionTitles(lang='en'): string[] {
     const titles: Record<string, string[]> = {
         en: [
             'Events',
@@ -296,7 +296,7 @@ async function getSectionContent(apiUrl: string, title: string,
 /**
  * Extracts events from content
  */
-function extractEventsFromContent(content: string, title: string, lang: string): WikiEvent[] {
+export function extractEventsFromContent(content: string, title: string, lang: string): WikiEvent[] {
     const $ = cheerio.load(content);
     const events: WikiEvent[] = [];
 
@@ -376,7 +376,7 @@ function unwrapElements($: cheerio.CheerioAPI, element: any) { // eslint-disable
  * @param {number} day
  * @returns {null|Date}
  */
-function createDate(year: number, month: number, day: number): null | Date {
+export function createDate(year: number, month: number, day: number): null | Date {
     try {
         return new Date(Date.UTC(year, month - 1, day));
     }

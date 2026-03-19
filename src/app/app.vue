@@ -2,7 +2,7 @@
 /**
  * app.vue
  *
- * On This Day (C) 2025 Wojciech Polak
+ * On This Day (C) 2025-2026 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -20,6 +20,8 @@
 -->
 
 <script setup lang="ts">
+import { useHead } from '#imports';
+
 useHead({
     htmlAttrs: {
         lang: 'en'

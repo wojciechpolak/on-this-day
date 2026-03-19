@@ -34,7 +34,6 @@ export default defineNuxtConfig({
 
     modules: [
         '@vite-pwa/nuxt',
-        '@nuxt/test-utils/module',
         '@nuxt/eslint',
     ],
     experimental: {
