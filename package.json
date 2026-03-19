@@ -39,6 +39,7 @@
     "@types/cheerio": "^0.22.35",
     "@types/luxon": "^3.7.1",
     "@vue/test-utils": "^2.4.6",
+    "commander": "^13.1.0",
     "happy-dom": "^20.0.11",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
