@@ -6,6 +6,8 @@
 .cache
 dist
 test-results
+/playwright-report
+/blob-report
 
 # Node dependencies
 node_modules

@@ -17,7 +17,7 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 type WikiEvent = {
   DTSTART: string;
@@ -32,6 +32,29 @@ type WikiRequest = {
   lang: string;
   url: string;
 };
+
+async function screenshotIfVisual(target: Page | Locator, name: string, mask: Locator[] = []) {
+  if (!process.env.VRT) {
+    return;
+  }
+
+  await expect(target).toHaveScreenshot(name, {
+    animations: 'disabled',
+    caret: 'hide',
+    mask,
+  });
+}
+
+function getVisualMasks(page: Page): Locator[] {
+  return [
+    page.locator('#date-subtitle'),
+    page.locator('.event .rel-date'),
+    page.locator('.event time'),
+    page.getByRole('button', { name: 'Toggle Nuxt DevTools' }),
+    page.getByRole('button', { name: 'Toggle Component Inspector' }),
+    page.getByText('Page load time'),
+  ];
+}
 
 function addUtcDays(date: Date, days: number): Date {
   const result = new Date(date);
@@ -136,6 +159,7 @@ test.describe.serial('On This Day', () => {
     await expect(page.locator('#events-container')).toContainText('Personal Day Event');
     await expect(page.locator('#events-container')).toContainText('Day event with');
     await expect(page.locator('#events-container a[href="https://example.com/day"]')).toBeVisible();
+    await screenshotIfVisual(page, 'personal-day-view.png', getVisualMasks(page));
   });
 
   test('filters personal events across day, week, month, and day-of-month views', async ({ page }) => {
@@ -193,6 +217,7 @@ test.describe.serial('On This Day', () => {
       'Nothing found. Looks like today is a quiet day in history.',
     );
     await expect(page.locator('#events-container .event')).toHaveCount(0);
+    await screenshotIfVisual(page, 'empty-personal-state.png', getVisualMasks(page));
   });
 
   test('switches to the history tab and renders mocked wikipedia events', async ({ page }) => {
@@ -209,6 +234,7 @@ test.describe.serial('On This Day', () => {
     await expect(page.getByRole('heading', { name: 'On This Day...' })).toBeVisible();
     await expect(wikiRequests).toHaveLength(1);
     expect(wikiRequests[0]).toMatchObject({ date: todayIso, lang: 'en' });
+    await screenshotIfVisual(page, 'history-tab.png', getVisualMasks(page));
   });
 
   test('shows a loading state while wikipedia data is pending', async ({ page }) => {

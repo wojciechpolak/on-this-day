@@ -18,7 +18,12 @@
     "typecheck": "nuxi typecheck",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "e2e:vrt": "VRT=1 playwright test",
+    "e2e:vrt:baseline": "VRT=1 playwright test --update-snapshots",
+    "e2e:vrt:report": "playwright show-report",
+    "e2e:vrt:docker": "./scripts/vrt-docker.sh",
+    "e2e:vrt:baseline:docker": "./scripts/vrt-docker.sh baseline"
   },
   "dependencies": {
     "@nuxt/eslint": "^1.15.2",

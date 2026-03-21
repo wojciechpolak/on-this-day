@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const visualMode = process.env.VRT === '1';
+const defaultReporter = process.env.CI ? ([['github']] as const) : ([['list']] as const);
+const visualReporter = [...defaultReporter, ['html', { open: 'never' }]] as const;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
@@ -7,10 +11,13 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   timeout: 60_000,
   workers: 1,
-  reporter: [['list']],
   expect: {
     timeout: 15_000,
+    toHaveScreenshot: {
+      pathTemplate: '.visual-regression/{testFilePath}/{arg}{ext}',
+    },
   },
+  reporter: visualMode ? visualReporter : defaultReporter,
   use: {
     baseURL: 'http://127.0.0.1:4173',
     locale: 'en-US',

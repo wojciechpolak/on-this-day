@@ -83,6 +83,20 @@ curl https://raw.githubusercontent.com/wojciechpolak/on-this-day/master/docker-c
    npm start
    ```
 
+## Testing
+
+```shell
+npm test
+npm run e2e
+npm run e2e:vrt:docker
+```
+
+Creating baseline images:
+
+```shell
+npm run e2e:vrt:baseline:docker
+```
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0.

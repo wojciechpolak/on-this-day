@@ -7,7 +7,9 @@ export default defineNuxtConfig({
         public: 'src/public',
         shared: 'src/shared',
     },
-    devtools: {enabled: true},
+    devtools: {
+        enabled: process.env.VRT !== '1',
+    },
 
     typescript: {
         typeCheck: true,
