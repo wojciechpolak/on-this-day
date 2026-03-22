@@ -89,7 +89,7 @@ nav.date {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: .5em;
+    margin-bottom: 0.5em;
 }
 nav.date .button {
     width: 30px;
@@ -99,7 +99,10 @@ nav.date .button {
     border: 2px solid var(--color-button-border);
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease,
+        border-color 0.3s ease;
 }
 @media (hover: hover) and (pointer: fine) {
     nav.date .button:hover {
@@ -115,15 +118,15 @@ nav.date .button:active {
 }
 
 .visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .mode {
@@ -160,7 +163,7 @@ label {
 }
 .event h2 .title {
     flex: 1;
-    margin-right: .5em;
+    margin-right: 0.5em;
     text-overflow: ellipsis;
     overflow-x: hidden;
 }

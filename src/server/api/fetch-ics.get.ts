@@ -53,9 +53,7 @@ export default defineEventHandler(async (event) => {
                 return event.node.res.end(cachedData);
             }
             const parser = new ICalParser(cachedData);
-            return parser
-                .getEvents()
-                .sort(sortEvents);
+            return parser.getEvents().sort(sortEvents);
         }
 
         // Otherwise fetch from all URLs
@@ -65,10 +63,9 @@ export default defineEventHandler(async (event) => {
                     const filePath = path.resolve(process.cwd(), url);
                     logger.debug('Fetching ICS from local file: %s', filePath);
                     return await fs.readFile(filePath, 'utf-8');
-                }
-                else {
+                } else {
                     logger.debug('Fetching ICS from %s', url);
-                    return await $fetch(url, {responseType: 'text'});
+                    return await $fetch(url, { responseType: 'text' });
                 }
             }),
         );
@@ -82,11 +79,8 @@ export default defineEventHandler(async (event) => {
         }
 
         const parser = new ICalParser(combinedData);
-        return parser
-            .getEvents()
-            .sort(sortEvents);
-    }
-    catch (error) {
+        return parser.getEvents().sort(sortEvents);
+    } catch (error) {
         logger.error(error);
         throw createError(error || 'Error fetching ICS data');
     }

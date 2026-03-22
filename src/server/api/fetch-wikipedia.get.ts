@@ -28,9 +28,7 @@ import { sortEvents } from '#shared/helpers';
 export default defineEventHandler(async (event) => {
     const query = getQuery(event);
     // 'YYYY-MM-DD'
-    const dateParam: string = Array.isArray(query.date) ?
-        query.date[0] :
-        query.date ?? '';
+    const dateParam: string = Array.isArray(query.date) ? query.date[0] : (query.date ?? '');
     let lang: string = <string>query.lang || 'en';
 
     const config = useRuntimeConfig();
@@ -53,9 +51,7 @@ export default defineEventHandler(async (event) => {
                 return event.node.res.end(cachedData);
             }
             const parser = new ICalParser(cachedData);
-            return parser
-                .getEvents()
-                .sort(sortEvents);
+            return parser.getEvents().sort(sortEvents);
         }
 
         const wikipediaSections = config.appWikipediaSections; // e.g. 'Events,Births,Deaths'
@@ -73,11 +69,8 @@ export default defineEventHandler(async (event) => {
         }
 
         const parser = new ICalParser(wikiData);
-        return parser
-            .getEvents()
-            .sort(sortEvents);
-    }
-    catch (error) {
+        return parser.getEvents().sort(sortEvents);
+    } catch (error) {
         logger.error(error);
         throw createError(error || 'Error fetching Wikipedia data');
     }

@@ -24,10 +24,7 @@ import type { NuxtError } from '#app';
 
 const response = useResponseHeader('Status');
 
-const props = defineProps({
-    // eslint-disable-next-line vue/require-default-prop
-    error: Object as () => NuxtError
-});
+const props = defineProps<{ error?: NuxtError }>();
 
 if (import.meta.server) {
     response.value = props.error?.statusCode;
@@ -35,8 +32,8 @@ if (import.meta.server) {
 </script>
 
 <template>
-  <div id="app">
-    <h1>{{ props?.error?.statusCode }}</h1>
-    <NuxtLink to="/">Go back home</NuxtLink>
-  </div>
+    <div id="app">
+        <h1>{{ props?.error?.statusCode }}</h1>
+        <NuxtLink to="/">Go back home</NuxtLink>
+    </div>
 </template>

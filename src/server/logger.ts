@@ -17,25 +17,19 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createLogger, format, transports} from 'winston';
+import { createLogger, format, transports } from 'winston';
 
-const {combine, timestamp, printf} = format;
+const { combine, timestamp, printf } = format;
 
 // Define custom log format
-const logFormat = printf(({level, message, timestamp}) => {
+const logFormat = printf(({ level, message, timestamp }) => {
     return `${timestamp} - ${level} - ${message}`;
 });
 
 const logger = createLogger({
     level: process.env.LOG_LEVEL ?? 'info',
-    format: combine(
-        timestamp(),
-        format.splat(),
-        logFormat
-    ),
-    transports: [
-        new transports.Console(),
-    ]
+    format: combine(timestamp(), format.splat(), logFormat),
+    transports: [new transports.Console()],
 });
 
 export default logger;

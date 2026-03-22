@@ -48,8 +48,7 @@ export default defineNuxtRouteMiddleware(() => {
 
             // Fallback if header is missing
             return 'en';
-        }
-        else {
+        } else {
             // Client-Side: Use navigator.language
             return navigator.language || 'en';
         }

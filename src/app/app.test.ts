@@ -22,34 +22,34 @@ import { mount } from '@vue/test-utils';
 import AppComponent from './app.vue';
 
 const mocks = vi.hoisted(() => ({
-  useHead: vi.fn(),
+    useHead: vi.fn(),
 }));
 
 vi.mock('#imports', () => ({
-  useHead: mocks.useHead,
+    useHead: mocks.useHead,
 }));
 
 describe('app.vue', () => {
-  it('configures the base document head', () => {
-    const wrapper = mount(AppComponent, {
-      global: {
-        stubs: {
-          NuxtLayout: {
-            template: '<section><slot /></section>',
-          },
-          NuxtPage: {
-            template: '<div data-testid="page-slot" />',
-          },
-          NuxtPwaAssets: true,
-        },
-      },
-    });
+    it('configures the base document head', () => {
+        const wrapper = mount(AppComponent, {
+            global: {
+                stubs: {
+                    NuxtLayout: {
+                        template: '<section><slot /></section>',
+                    },
+                    NuxtPage: {
+                        template: '<div data-testid="page-slot" />',
+                    },
+                    NuxtPwaAssets: true,
+                },
+            },
+        });
 
-    expect(mocks.useHead).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'On This Day',
-      }),
-    );
-    expect(wrapper.find('[data-testid="page-slot"]').exists()).toBe(true);
-  });
+        expect(mocks.useHead).toHaveBeenCalledWith(
+            expect.objectContaining({
+                title: 'On This Day',
+            }),
+        );
+        expect(wrapper.find('[data-testid="page-slot"]').exists()).toBe(true);
+    });
 });

@@ -20,7 +20,6 @@
 -->
 
 <script setup lang="ts">
-
 import { ref, computed, watch } from 'vue';
 import { parseInputText } from '#shared/helpers';
 import { useLanguage } from '~/composables/useLanguage';
@@ -33,7 +32,7 @@ const shouldShowHistoryTab = true;
 const STORAGE_KEY_VIEW_MODE = 'otdViewMode';
 const viewMode = useCookie<'day' | 'week' | 'month' | 'dayOfMonth'>(STORAGE_KEY_VIEW_MODE, {
     default: () => 'day',
-    maxAge: 86400 * 365
+    maxAge: 86400 * 365,
 });
 
 const selectedDate = ref(useCurrentDate());
@@ -45,7 +44,7 @@ const historyEvents = ref<IcsEvent[]>([]);
 const filteredPersonalEvents = ref<IcsEvent[]>([]);
 
 const userLang = computed<string>(() => {
-    return (useLanguage().value || 'en');
+    return useLanguage().value || 'en';
 });
 
 // Title & date subtitle
@@ -55,7 +54,7 @@ const dateSubtitle = computed(() => {
         weekday: 'short',
         year: 'numeric',
         month: 'short',
-        day: 'numeric'
+        day: 'numeric',
     };
     return `(${selectedDate.value.toLocaleDateString(userLang.value, dateOpts)})`;
 });
@@ -82,16 +81,20 @@ const {
     data: icsData,
     status: icsStatus,
     error: icsError,
-} = await useLazyAsyncData('personal-ics', () => {
-    return $fetch<IcsEvent[]>('/api/fetch-ics', {
-        responseType: 'text',
-        parseResponse: (rawText: string) => {
-            return JSON.parse(rawText, dateReviver);
-        },
-    });
-}, {
-    immediate: true,
-});
+} = await useLazyAsyncData(
+    'personal-ics',
+    () => {
+        return $fetch<IcsEvent[]>('/api/fetch-ics', {
+            responseType: 'text',
+            parseResponse: (rawText: string) => {
+                return JSON.parse(rawText, dateReviver);
+            },
+        });
+    },
+    {
+        immediate: true,
+    },
+);
 
 // Whenever pendingIcs changes, manage the delay
 watch(
@@ -101,15 +104,14 @@ watch(
             loadingTimer = setTimeout(() => {
                 showLoading.value = true;
             }, 200);
-        }
-        else {
+        } else {
             if (loadingTimer) {
                 clearTimeout(loadingTimer);
             }
             showLoading.value = false;
         }
     },
-    {immediate: true}
+    { immediate: true },
 );
 
 // Parse ICS text -> personalEvents
@@ -123,10 +125,10 @@ watch(
         personalEvents.value = val;
         filteredPersonalEvents.value = filterPersonalEvents(personalEvents.value);
     },
-    {immediate: true}
+    { immediate: true },
 );
 
-type CustomError = Error & {data: {message: string}};
+type CustomError = Error & { data: { message: string } };
 
 const getIcsErrorMessage = computed(() => {
     const err = icsError.value as CustomError;
@@ -144,19 +146,21 @@ const {
     status: wikiStatus,
     error: wikiError,
     refresh: refreshWiki,
-} = await useLazyAsyncData('wiki-ics', () => {
-    const lang = userLang.value.slice(0, 2);
-    return $fetch<IcsEvent[]>(
-        `/api/fetch-wikipedia?date=${isoDate.value}&lang=${lang}`, {
+} = await useLazyAsyncData(
+    'wiki-ics',
+    () => {
+        const lang = userLang.value.slice(0, 2);
+        return $fetch<IcsEvent[]>(`/api/fetch-wikipedia?date=${isoDate.value}&lang=${lang}`, {
             responseType: 'text',
             parseResponse: (rawText: string) => {
                 return JSON.parse(rawText, dateReviver);
-            }
-        }
-    );
-}, {
-    immediate: false,
-});
+            },
+        });
+    },
+    {
+        immediate: false,
+    },
+);
 
 // ---------
 // WATCHERS
@@ -171,7 +175,7 @@ watch(
         }
         historyEvents.value = val;
     },
-    {immediate: true}
+    { immediate: true },
 );
 
 const getWikiErrorMessage = computed(() => {
@@ -242,10 +246,7 @@ function filterPersonalEvents(events: IcsEvent[]): IcsEvent[] {
 }
 
 function isEventThisMonth(eventDate: Date, month: number, year: number) {
-    return (
-        eventDate.getUTCMonth() === month &&
-        eventDate.getUTCFullYear() !== year
-    );
+    return eventDate.getUTCMonth() === month && eventDate.getUTCFullYear() !== year;
 }
 
 function isEventThisWeek(eventDate: Date, currentDate: Date, year: number) {
@@ -259,9 +260,7 @@ function isEventThisWeek(eventDate: Date, currentDate: Date, year: number) {
     endOfWeek.setUTCHours(23, 59, 59);
 
     return (
-        eventDate >= startOfWeek &&
-        eventDate <= endOfWeek &&
-        eventDate.getUTCFullYear() !== year
+        eventDate >= startOfWeek && eventDate <= endOfWeek && eventDate.getUTCFullYear() !== year
     );
 }
 
@@ -276,8 +275,7 @@ function selectTab(tab: 'tab-personal' | 'tab-history') {
         }
         // Title for history is typically 'On This Day...'
         titleText.value = 'On This Day...';
-    }
-    else {
+    } else {
         setTitle(viewMode.value);
     }
 }
@@ -324,18 +322,18 @@ function getRelativeTime(eventDate: Date) {
     const today: Date = useCurrentDate();
     const timeDifference: number = eventDate.getTime() - today.getTime();
     const secondsDifference = Math.round(timeDifference / 1000);
-    const rtf = new Intl.RelativeTimeFormat(userLang.value, {numeric: 'auto'});
+    const rtf = new Intl.RelativeTimeFormat(userLang.value, { numeric: 'auto' });
     const thresholds = [
-        {unit: 'second', threshold: 60},
-        {unit: 'minute', threshold: 60},
-        {unit: 'hour', threshold: 24},
-        {unit: 'day', threshold: 30},
-        {unit: 'month', threshold: 12},
-        {unit: 'year', threshold: Number.POSITIVE_INFINITY}
+        { unit: 'second', threshold: 60 },
+        { unit: 'minute', threshold: 60 },
+        { unit: 'hour', threshold: 24 },
+        { unit: 'day', threshold: 30 },
+        { unit: 'month', threshold: 12 },
+        { unit: 'year', threshold: Number.POSITIVE_INFINITY },
     ];
     function _formatTimestamp(timestamp: number) {
         let remainingTime = timestamp;
-        for (const {unit, threshold} of thresholds) {
+        for (const { unit, threshold } of thresholds) {
             if (Math.abs(remainingTime) < threshold) {
                 const value = Math.round(remainingTime);
                 return rtf.format(Math.round(value), unit as Intl.RelativeTimeFormatUnit);
@@ -359,10 +357,12 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
     };
 
     // If ICS indicates all-day event (end is midnight next day):
-    if (endDate &&
+    if (
+        endDate &&
         endDate.getUTCHours() === 0 &&
         endDate.getUTCMinutes() === 0 &&
-        endDate.getUTCSeconds() === 0) {
+        endDate.getUTCSeconds() === 0
+    ) {
         const adjustedEndDate = new Date(endDate);
         adjustedEndDate.setUTCDate(endDate.getUTCDate() - 1);
         if (startDate.toDateString() === adjustedEndDate.toDateString()) {
@@ -378,7 +378,7 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
     if (endDate) {
         return `${startDate.toLocaleDateString(userLang.value, dateOptions)} – ${endDate.toLocaleDateString(
             userLang.value,
-            dateOptions
+            dateOptions,
         )}`;
     }
     return startDate.toLocaleDateString(userLang.value, dateOptions);
@@ -391,9 +391,15 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
 
         <!-- Date navigation -->
         <nav class="date">
-            <button class="button left" aria-label="Previous Date" @click="handleDateChange(-1)">-</button>
-            <button id="date-subtitle" aria-label="Reset to current date" @click="resetDate">{{ dateSubtitle }}</button>
-            <button class="button right" aria-label="Next Date" @click="handleDateChange(+1)">+</button>
+            <button class="button left" aria-label="Previous Date" @click="handleDateChange(-1)">
+                -
+            </button>
+            <button id="date-subtitle" aria-label="Reset to current date" @click="resetDate">
+                {{ dateSubtitle }}
+            </button>
+            <button class="button right" aria-label="Next Date" @click="handleDateChange(+1)">
+                +
+            </button>
         </nav>
 
         <!-- Tabs -->
@@ -405,7 +411,8 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                     accesskey="1"
                     aria-controls="tab-personal"
                     :class="{ active: selectedTab === 'tab-personal' }"
-                    @click="selectTab('tab-personal')">
+                    @click="selectTab('tab-personal')"
+                >
                     Personal Events
                 </button>
                 <button
@@ -415,7 +422,8 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                     accesskey="2"
                     aria-controls="tab-history"
                     :class="{ active: selectedTab === 'tab-history' }"
-                    @click="selectTab('tab-history')">
+                    @click="selectTab('tab-history')"
+                >
                     Historical Events
                 </button>
             </nav>
@@ -426,8 +434,8 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                 id="tab-personal"
                 class="tab-content"
                 role="tabpanel"
-                aria-labelledby="tab-personal">
-
+                aria-labelledby="tab-personal"
+            >
                 <!-- Mode radio buttons -->
                 <fieldset class="mode">
                     <legend class="visually-hidden">View Mode</legend>
@@ -437,7 +445,8 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                             type="radio"
                             name="view-mode"
                             value="day"
-                            accesskey="d">
+                            accesskey="d"
+                        />
                         Day
                     </label>
                     <label>
@@ -446,7 +455,8 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                             type="radio"
                             name="view-mode"
                             value="week"
-                            accesskey="w">
+                            accesskey="w"
+                        />
                         Week
                     </label>
                     <label>
@@ -455,7 +465,8 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                             type="radio"
                             name="view-mode"
                             value="month"
-                            accesskey="m">
+                            accesskey="m"
+                        />
                         Month
                     </label>
                     <label>
@@ -463,7 +474,8 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                             v-model="viewMode"
                             type="radio"
                             name="view-mode"
-                            value="dayOfMonth">
+                            value="dayOfMonth"
+                        />
                         Day of the Month
                     </label>
                 </fieldset>
@@ -476,17 +488,23 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                     </div>
                     <div v-else>
                         <div
-                            v-if="icsStatus !== 'pending' && !showLoading && filteredPersonalEvents.length === 0"
-                            class="no-events-message">
+                            v-if="
+                                icsStatus !== 'pending' &&
+                                !showLoading &&
+                                filteredPersonalEvents.length === 0
+                            "
+                            class="no-events-message"
+                        >
                             Nothing found. Looks like today is a quiet day in history.
                         </div>
-                        <!-- eslint-disable vue/no-v-html -->
+                        <!-- oxlint-disable vue/no-v-html -->
                         <article
                             v-for="(event, idx) in filteredPersonalEvents"
                             :key="'personal-' + idx"
                             class="event"
-                            v-html="renderEventHtml(event)"/>
-                        <!-- eslint-enable -->
+                            v-html="renderEventHtml(event)"
+                        />
+                        <!-- oxlint-enable -->
                     </div>
                 </div>
             </div>
@@ -497,26 +515,25 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                 id="tab-history"
                 class="tab-content"
                 role="tabpanel"
-                aria-controls="tab-history">
-
+                aria-controls="tab-history"
+            >
                 <div id="history-container" aria-live="polite" aria-label="Historical Events">
                     <div v-if="wikiStatus === 'pending'" class="loading">Loading...</div>
                     <div v-else-if="wikiError" class="no-events-message">
                         {{ getWikiErrorMessage }}
                     </div>
                     <div v-else>
-                        <div
-                            v-if="historyEvents.length === 0"
-                            class="no-events-message">
+                        <div v-if="historyEvents.length === 0" class="no-events-message">
                             Nothing found. Looks like today is a quiet day in history.
                         </div>
-                        <!-- eslint-disable vue/no-v-html -->
+                        <!-- oxlint-disable vue/no-v-html -->
                         <article
                             v-for="(event, idx) in historyEvents"
                             :key="'history-' + idx"
                             class="event"
-                            v-html="renderEventHtml(event)"/>
-                        <!-- eslint-enable -->
+                            v-html="renderEventHtml(event)"
+                        />
+                        <!-- oxlint-enable -->
                     </div>
                 </div>
             </div>

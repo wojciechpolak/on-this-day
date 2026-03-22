@@ -38,10 +38,7 @@ export default defineNuxtConfig({
         appWikipediaSections: process.env.APP_WIKIPEDIA_SECTIONS,
     },
 
-    modules: [
-        '@vite-pwa/nuxt',
-        '@nuxt/eslint',
-    ],
+    modules: ['@vite-pwa/nuxt'],
     experimental: {
         payloadExtraction: false,
     },
@@ -50,26 +47,26 @@ export default defineNuxtConfig({
         strategies: 'generateSW',
         registerType: 'autoUpdate',
         manifest: {
-            'name': 'On This Day',
-            'short_name': 'OTD',
-            'display': 'standalone',
-            'id': './',
-            'scope': './',
-            'start_url': './',
-            'icons': [
+            name: 'On This Day',
+            short_name: 'OTD',
+            display: 'standalone',
+            id: './',
+            scope: './',
+            start_url: './',
+            icons: [
                 {
-                    'src': 'icons/icon-192x192.png',
-                    'sizes': '192x192',
-                    'type': 'image/png',
-                    'purpose': 'maskable any'
+                    src: 'icons/icon-192x192.png',
+                    sizes: '192x192',
+                    type: 'image/png',
+                    purpose: 'maskable any',
                 },
                 {
-                    'src': 'icons/icon-512x512.png',
-                    'sizes': '512x512',
-                    'type': 'image/png',
-                    'purpose': 'maskable any'
-                }
-            ]
+                    src: 'icons/icon-512x512.png',
+                    sizes: '512x512',
+                    type: 'image/png',
+                    purpose: 'maskable any',
+                },
+            ],
         },
         workbox: {
             globPatterns: ['**/*.{js,css,html,png,svg,ico}'],

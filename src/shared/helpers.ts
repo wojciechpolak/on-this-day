@@ -23,34 +23,33 @@ import type { IcsEvent } from '#shared/ics-parser';
  * Events sorter
  */
 export function sortEvents(a: IcsEvent, b: IcsEvent): number {
-    return (b.DTSTART.valueOf() || b.DTEND.valueOf()) -
-        (a.DTSTART.valueOf() || a.DTEND.valueOf());
+    return (b.DTSTART.valueOf() || b.DTEND.valueOf()) - (a.DTSTART.valueOf() || a.DTEND.valueOf());
 }
 
 /**
  * Escapes HTML, linkifies URLs, and replaces newlines with <br>.
  */
 export function parseInputText(input: string) {
-  function escapeHTML(str: string) {
-    const replacements: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;',
-    };
-    return str.replace(/[&<>"']/g, (char) => replacements[char] ?? '');
-  }
+    function escapeHTML(str: string) {
+        const replacements: Record<string, string> = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+        };
+        return str.replace(/[&<>"']/g, (char) => replacements[char] ?? '');
+    }
 
-  function linkify(str: string) {
-    const urlRegex = /https?:\/\/[^\s/$.?#].[^\s]*/gi;
-    return str.replace(urlRegex, function (url) {
-      const escapedURL = escapeHTML(url);
-      return `<a href="${escapedURL}" target="_blank" rel="noopener noreferrer">${escapedURL}</a>`;
-    });
-  }
+    function linkify(str: string) {
+        const urlRegex = /https?:\/\/[^\s/$.?#].[^\s]*/gi;
+        return str.replace(urlRegex, function (url) {
+            const escapedURL = escapeHTML(url);
+            return `<a href="${escapedURL}" target="_blank" rel="noopener noreferrer">${escapedURL}</a>`;
+        });
+    }
 
-  const escapedText = escapeHTML(input);
-  const linkedText = linkify(escapedText);
-  return linkedText.replace(/\n/g, '<br>');
+    const escapedText = escapeHTML(input);
+    const linkedText = linkify(escapedText);
+    return linkedText.replace(/\n/g, '<br>');
 }

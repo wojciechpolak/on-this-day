@@ -20,85 +20,86 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
-  function ConsoleTransport(this: never) {}
-  const createLogger = vi.fn((config: unknown) => ({ config }));
-  const combine = vi.fn();
-  const timestamp = vi.fn(() => 'timestamp');
-  const splat = vi.fn(() => 'splat');
-  const printf = vi.fn((handler: (input: { level: string; message: string; timestamp: string }) => string) => handler);
+    function ConsoleTransport(this: never) {}
+    const createLogger = vi.fn((config: unknown) => ({ config }));
+    const combine = vi.fn();
+    const timestamp = vi.fn(() => 'timestamp');
+    const splat = vi.fn(() => 'splat');
+    const printf = vi.fn(
+        (handler: (input: { level: string; message: string; timestamp: string }) => string) =>
+            handler,
+    );
 
-  return {
-    ConsoleTransport,
-    createLogger,
-    combine,
-    timestamp,
-    splat,
-    printf,
-  };
+    return {
+        ConsoleTransport,
+        createLogger,
+        combine,
+        timestamp,
+        splat,
+        printf,
+    };
 });
 
 vi.mock('winston', () => ({
-  createLogger: mocks.createLogger,
-  format: {
-    combine: mocks.combine,
-    timestamp: mocks.timestamp,
-    splat: mocks.splat,
-    printf: mocks.printf,
-  },
-  transports: {
-    Console: mocks.ConsoleTransport,
-  },
+    createLogger: mocks.createLogger,
+    format: {
+        combine: mocks.combine,
+        timestamp: mocks.timestamp,
+        splat: mocks.splat,
+        printf: mocks.printf,
+    },
+    transports: {
+        Console: mocks.ConsoleTransport,
+    },
 }));
 
 async function loadLogger() {
-  vi.resetModules();
-  return await import('./logger');
+    vi.resetModules();
+    return await import('./logger');
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+    vi.clearAllMocks();
 });
 
 describe('logger', () => {
-  it('uses the LOG_LEVEL env value when present', async () => {
-    const original = process.env.LOG_LEVEL;
-    process.env.LOG_LEVEL = 'debug';
+    it('uses the LOG_LEVEL env value when present', async () => {
+        const original = process.env.LOG_LEVEL;
+        process.env.LOG_LEVEL = 'debug';
 
-    const { default: logger } = await loadLogger();
+        const { default: logger } = await loadLogger();
 
-    expect(logger).toEqual({ config: expect.any(Object) });
-    expect(mocks.createLogger).toHaveBeenCalledWith(
-      expect.objectContaining({
-        level: 'debug',
-        transports: [expect.any(mocks.ConsoleTransport)],
-      }),
-    );
+        expect(logger).toEqual({ config: expect.any(Object) });
+        expect(mocks.createLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+                level: 'debug',
+                transports: [expect.any(mocks.ConsoleTransport)],
+            }),
+        );
 
-    if (original === undefined) {
-      delete process.env.LOG_LEVEL;
-    }
-    else {
-      process.env.LOG_LEVEL = original;
-    }
-  });
+        if (original === undefined) {
+            delete process.env.LOG_LEVEL;
+        } else {
+            process.env.LOG_LEVEL = original;
+        }
+    });
 
-  it('falls back to info when LOG_LEVEL is not set', async () => {
-    const original = process.env.LOG_LEVEL;
-    delete process.env.LOG_LEVEL;
+    it('falls back to info when LOG_LEVEL is not set', async () => {
+        const original = process.env.LOG_LEVEL;
+        delete process.env.LOG_LEVEL;
 
-    await loadLogger();
+        await loadLogger();
 
-    expect(mocks.createLogger).toHaveBeenCalledWith(
-      expect.objectContaining({
-        level: 'info',
-      }),
-    );
+        expect(mocks.createLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+                level: 'info',
+            }),
+        );
 
-    if (original === undefined) {
-      delete process.env.LOG_LEVEL;
-    }
-    else {
-      process.env.LOG_LEVEL = original;
-    }
-  });
+        if (original === undefined) {
+            delete process.env.LOG_LEVEL;
+        } else {
+            process.env.LOG_LEVEL = original;
+        }
+    });
 });

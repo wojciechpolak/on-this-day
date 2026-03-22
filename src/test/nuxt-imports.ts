@@ -21,7 +21,8 @@ export const useHead = () => undefined;
 export const useLazyAsyncData = () => undefined;
 export const useRequestHeaders = () => ({});
 export const useRuntimeConfig = () => ({});
-export const useState = <T>(_key: string, init?: () => T) => ({
-  value: init ? init() : undefined,
-} as { value: T | undefined });
+export const useState = <T>(_key: string, init?: () => T) =>
+    ({
+        value: init ? init() : undefined,
+    }) as { value: T | undefined };
 export const defineNuxtRouteMiddleware = <T>(handler: T) => handler;

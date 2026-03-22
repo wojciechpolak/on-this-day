@@ -22,71 +22,73 @@ import { describe, expect, it } from 'vitest';
 import ICalParser from './ics-parser';
 
 describe('ICalParser', () => {
-  it('parses UTC and date-only values', () => {
-    const parser = new ICalParser('');
+    it('parses UTC and date-only values', () => {
+        const parser = new ICalParser('');
 
-    const dateTime = parser.parseDate('20250319T081530Z');
-    const dateOnly = parser.parseDate('20250319', false);
+        const dateTime = parser.parseDate('20250319T081530Z');
+        const dateOnly = parser.parseDate('20250319', false);
 
-    expect(dateTime?.toISOString()).toBe('2025-03-19T08:15:30.000Z');
-    expect(dateOnly?.toISOString()).toBe('2025-03-19T00:00:00.000Z');
-  });
+        expect(dateTime?.toISOString()).toBe('2025-03-19T08:15:30.000Z');
+        expect(dateOnly?.toISOString()).toBe('2025-03-19T00:00:00.000Z');
+    });
 
-  it('decodes escaped iCal text and HTML blobs', () => {
-    const parser = new ICalParser('');
+    it('decodes escaped iCal text and HTML blobs', () => {
+        const parser = new ICalParser('');
 
-    expect(parser.unescapeICalString('Line one\\nLine two\\, semicolon\\; slash\\\\')).toBe(
-      'Line one\nLine two, semicolon; slash\\',
-    );
-    expect(parser.decodeHtmlBlob('<html-blob>&lt;strong&gt;bold&lt;/strong&gt;</html-blob>')).toBe(
-      '<strong>bold</strong>',
-    );
-  });
+        expect(parser.unescapeICalString('Line one\\nLine two\\, semicolon\\; slash\\\\')).toBe(
+            'Line one\nLine two, semicolon; slash\\',
+        );
+        expect(
+            parser.decodeHtmlBlob('<html-blob>&lt;strong&gt;bold&lt;/strong&gt;</html-blob>'),
+        ).toBe('<strong>bold</strong>');
+    });
 
-  it('parses VEVENT entries, skips alarms, and handles folded lines', () => {
-    const parser = new ICalParser([
-      'BEGIN:VCALENDAR',
-      'BEGIN:VEVENT',
-      'DTSTART:20250319T081530Z',
-      'DTEND:20250319T091530Z',
-      'SUMMARY;VALUE=TEXT:First\\, event',
-      'DESCRIPTION:Line one ',
-      ' line two',
-      'BEGIN:VALARM',
-      'ACTION:DISPLAY',
-      'DESCRIPTION:Ignored alarm',
-      'END:VALARM',
-      'END:VEVENT',
-      'BEGIN:VEVENT',
-      'DTSTART;VALUE=DATE:20250320',
-      'DTEND;VALUE=DATE:20250321',
-      'SUMMARY:<html-blob>&lt;em&gt;Second&lt;/em&gt;</html-blob>',
-      'DESCRIPTION;VALUE=TEXT:Plain\\, text',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\n'));
+    it('parses VEVENT entries, skips alarms, and handles folded lines', () => {
+        const parser = new ICalParser(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20250319T081530Z',
+                'DTEND:20250319T091530Z',
+                'SUMMARY;VALUE=TEXT:First\\, event',
+                'DESCRIPTION:Line one ',
+                ' line two',
+                'BEGIN:VALARM',
+                'ACTION:DISPLAY',
+                'DESCRIPTION:Ignored alarm',
+                'END:VALARM',
+                'END:VEVENT',
+                'BEGIN:VEVENT',
+                'DTSTART;VALUE=DATE:20250320',
+                'DTEND;VALUE=DATE:20250321',
+                'SUMMARY:<html-blob>&lt;em&gt;Second&lt;/em&gt;</html-blob>',
+                'DESCRIPTION;VALUE=TEXT:Plain\\, text',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
 
-    const events = parser.getEvents();
+        const events = parser.getEvents();
 
-    expect(events).toHaveLength(2);
+        expect(events).toHaveLength(2);
 
-    const firstEvent = events[0];
-    const secondEvent = events[1];
+        const firstEvent = events[0];
+        const secondEvent = events[1];
 
-    if (!firstEvent || !secondEvent) {
-      throw new Error('Expected two parsed events');
-    }
+        if (!firstEvent || !secondEvent) {
+            throw new Error('Expected two parsed events');
+        }
 
-    expect(firstEvent.SUMMARY).toBe('First, event');
-    expect(firstEvent.DESCRIPTION).toBe('Line one line two');
-    expect(firstEvent.DTSTART.toISOString()).toBe('2025-03-19T08:15:30.000Z');
-    expect(firstEvent.DTEND.toISOString()).toBe('2025-03-19T09:15:30.000Z');
+        expect(firstEvent.SUMMARY).toBe('First, event');
+        expect(firstEvent.DESCRIPTION).toBe('Line one line two');
+        expect(firstEvent.DTSTART.toISOString()).toBe('2025-03-19T08:15:30.000Z');
+        expect(firstEvent.DTEND.toISOString()).toBe('2025-03-19T09:15:30.000Z');
 
-    expect(secondEvent.SUMMARY).toBe('<em>Second</em>');
-    expect(secondEvent.DESCRIPTION).toBe('Plain, text');
-    expect(secondEvent.DTSTART.toISOString()).toBe('2025-03-20T00:00:00.000Z');
-    expect(secondEvent.DTEND.toISOString()).toBe('2025-03-21T00:00:00.000Z');
-    expect(secondEvent.DTSTART_VALUE).toBe('DATE');
-    expect(secondEvent.DTEND_VALUE).toBe('DATE');
-  });
+        expect(secondEvent.SUMMARY).toBe('<em>Second</em>');
+        expect(secondEvent.DESCRIPTION).toBe('Plain, text');
+        expect(secondEvent.DTSTART.toISOString()).toBe('2025-03-20T00:00:00.000Z');
+        expect(secondEvent.DTEND.toISOString()).toBe('2025-03-21T00:00:00.000Z');
+        expect(secondEvent.DTSTART_VALUE).toBe('DATE');
+        expect(secondEvent.DTEND_VALUE).toBe('DATE');
+    });
 });

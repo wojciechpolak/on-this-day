@@ -26,7 +26,6 @@ export interface IcsEvent {
 }
 
 export default class ICalParser {
-
     private icalData: string;
     private events: IcsEvent[];
 
@@ -55,8 +54,7 @@ export default class ICalParser {
             const minute = parseInt(dateString.slice(11, 13), 10);
             const second = parseInt(dateString.slice(13, 15), 10);
             return new Date(Date.UTC(year, month, day, hour, minute, second));
-        }
-        else {
+        } else {
             return new Date(Date.UTC(year, month, day));
         }
     }
@@ -66,8 +64,7 @@ export default class ICalParser {
         const lines = this.icalData.split(/\r\n|\n|\r/).reduce((acc: string[], line) => {
             if (line.startsWith(' ') || line.startsWith('\t')) {
                 acc[acc.length - 1] += line.slice(1);
-            }
-            else {
+            } else {
                 acc.push(line);
             }
             return acc;
@@ -76,51 +73,43 @@ export default class ICalParser {
         let event: IcsEvent;
         let insideAlarm = false;
 
-        lines.forEach(line => {
+        lines.forEach((line) => {
             if (line.startsWith('BEGIN:VEVENT')) {
                 event = {} as IcsEvent;
-            }
-            else if (line.startsWith('END:VEVENT')) {
+            } else if (line.startsWith('END:VEVENT')) {
                 this.events.push(event);
-            }
-            else if (line.startsWith('BEGIN:VALARM')) {
+            } else if (line.startsWith('BEGIN:VALARM')) {
                 insideAlarm = true;
-            }
-            else if (line.startsWith('END:VALARM')) {
+            } else if (line.startsWith('END:VALARM')) {
                 insideAlarm = false;
-            }
-            else if (event && !insideAlarm) {
+            } else if (event && !insideAlarm) {
                 const [key, ...valueParts] = line.split(':');
                 let value: Date | string | undefined = valueParts.join(':');
                 if (key && value) {
-                    if (key.includes(';VALUE=DATE') ||
-                        key.includes(';TZID=')) {
+                    if (key.includes(';VALUE=DATE') || key.includes(';TZID=')) {
                         const dateKey = key.split(';')[0]!; // Extract the actual key (DTSTART or DTEND)
                         if (dateKey === 'DTSTART' || dateKey === 'DTEND' || dateKey === 'DTSTAMP') {
                             value = this.parseDate(value, false);
                         }
                         event[dateKey] = value;
                         event[`${dateKey}_VALUE`] = 'DATE'; // Mark this as a DATE value
-                    }
-                    else if (key.includes(';VALUE=TEXT')) {
+                    } else if (key.includes(';VALUE=TEXT')) {
                         const k = key.split(';')[0]!;
                         event[k] = this.unescapeICalString(value);
                         event[`${k}_VALUE`] = 'TEXT';
-                    }
-                    else if (key.includes(';FMTTYPE=text/html')) {
+                    } else if (key.includes(';FMTTYPE=text/html')) {
                         const k = key.split(';')[0]!;
                         event[k] = this.unescapeICalString(value);
                         event[`${k}_VALUE`] = 'HTML';
-                    }
-                    else {
+                    } else {
                         if (key === 'DTSTART' || key === 'DTEND' || key === 'DTSTAMP') {
                             value = this.parseDate(value.padStart(16, '0'));
                         }
                         if (typeof value === 'string' && value.startsWith('<html-blob>')) {
                             event[key] = this.decodeHtmlBlob(
-                                this.unescapeICalString(value) as string);
-                        }
-                        else {
+                                this.unescapeICalString(value) as string,
+                            );
+                        } else {
                             event[key] = this.unescapeICalString(value as string);
                         }
                     }

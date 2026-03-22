@@ -21,40 +21,39 @@ import { describe, expect, it, vi } from 'vitest';
 import middleware from './i18n.global';
 
 const mocks = vi.hoisted(() => ({
-  defineNuxtRouteMiddleware: vi.fn((handler: unknown) => handler),
-  useRequestHeaders: vi.fn(),
-  languageState: { value: '' as string },
+    defineNuxtRouteMiddleware: vi.fn((handler: unknown) => handler),
+    useRequestHeaders: vi.fn(),
+    languageState: { value: '' as string },
 }));
 
 vi.mock('#imports', () => ({
-  defineNuxtRouteMiddleware: mocks.defineNuxtRouteMiddleware,
-  useRequestHeaders: mocks.useRequestHeaders,
+    defineNuxtRouteMiddleware: mocks.defineNuxtRouteMiddleware,
+    useRequestHeaders: mocks.useRequestHeaders,
 }));
 
 vi.mock('~/composables/useLanguage', () => ({
-  useLanguage: () => mocks.languageState,
+    useLanguage: () => mocks.languageState,
 }));
 
 describe('i18n.global middleware', () => {
-  it('updates the shared language state from the active environment', () => {
-    mocks.useRequestHeaders.mockReturnValue({
-      'accept-language': 'de-DE,de;q=0.9',
+    it('updates the shared language state from the active environment', () => {
+        mocks.useRequestHeaders.mockReturnValue({
+            'accept-language': 'de-DE,de;q=0.9',
+        });
+
+        Object.defineProperty(navigator, 'language', {
+            configurable: true,
+            value: 'fr-FR',
+        });
+
+        middleware({} as never, {} as never);
+
+        if (import.meta.server) {
+            expect(mocks.useRequestHeaders).toHaveBeenCalledWith(['accept-language']);
+            expect(mocks.languageState.value).toBe('de-DE');
+        } else {
+            expect(mocks.useRequestHeaders).not.toHaveBeenCalled();
+            expect(mocks.languageState.value).toBe('fr-FR');
+        }
     });
-
-    Object.defineProperty(navigator, 'language', {
-      configurable: true,
-      value: 'fr-FR',
-    });
-
-    middleware({} as never, {} as never);
-
-    if (import.meta.server) {
-      expect(mocks.useRequestHeaders).toHaveBeenCalledWith(['accept-language']);
-      expect(mocks.languageState.value).toBe('de-DE');
-    }
-    else {
-      expect(mocks.useRequestHeaders).not.toHaveBeenCalled();
-      expect(mocks.languageState.value).toBe('fr-FR');
-    }
-  });
 });

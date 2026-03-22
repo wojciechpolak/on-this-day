@@ -21,21 +21,21 @@ import { describe, expect, it, vi } from 'vitest';
 import { useLanguage } from './useLanguage';
 
 const mocks = vi.hoisted(() => ({
-  useState: vi.fn(),
+    useState: vi.fn(),
 }));
 
 vi.mock('#imports', () => ({
-  useState: mocks.useState,
+    useState: mocks.useState,
 }));
 
 describe('useLanguage', () => {
-  it('returns the shared language state', () => {
-    const languageState = { value: '' };
-    mocks.useState.mockReturnValue(languageState);
+    it('returns the shared language state', () => {
+        const languageState = { value: '' };
+        mocks.useState.mockReturnValue(languageState);
 
-    const language = useLanguage();
+        const language = useLanguage();
 
-    expect(language).toBe(languageState);
-    expect(language.value).toBe('');
-  });
+        expect(language).toBe(languageState);
+        expect(language.value).toBe('');
+    });
 });

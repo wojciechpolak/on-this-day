@@ -20,63 +20,61 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
-  const nodeCache = vi.fn();
-  const instance = { nodeCache };
+    const nodeCache = vi.fn();
+    const instance = { nodeCache };
 
-  return {
-    nodeCache,
-    instance,
-  };
+    return {
+        nodeCache,
+        instance,
+    };
 });
 
 vi.mock('node-cache', () => ({
-  default: function NodeCacheMock(options: { stdTTL: number }) {
-    mocks.nodeCache(options);
-    return mocks.instance;
-  },
+    default: function NodeCacheMock(options: { stdTTL: number }) {
+        mocks.nodeCache(options);
+        return mocks.instance;
+    },
 }));
 
 async function loadCacheModule() {
-  vi.resetModules();
-  return await import('./cache');
+    vi.resetModules();
+    return await import('./cache');
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+    vi.clearAllMocks();
 });
 
 describe('cache', () => {
-  it('uses the default TTL when env is not configured', async () => {
-    const original = process.env.appCacheTtl;
-    delete process.env.appCacheTtl;
+    it('uses the default TTL when env is not configured', async () => {
+        const original = process.env.appCacheTtl;
+        delete process.env.appCacheTtl;
 
-    const { default: cache } = await loadCacheModule();
+        const { default: cache } = await loadCacheModule();
 
-    expect(cache).toBe(mocks.instance);
-    expect(mocks.nodeCache).toHaveBeenCalledWith({ stdTTL: 86400 });
+        expect(cache).toBe(mocks.instance);
+        expect(mocks.nodeCache).toHaveBeenCalledWith({ stdTTL: 86400 });
 
-    if (original === undefined) {
-      delete process.env.appCacheTtl;
-    }
-    else {
-      process.env.appCacheTtl = original;
-    }
-  });
+        if (original === undefined) {
+            delete process.env.appCacheTtl;
+        } else {
+            process.env.appCacheTtl = original;
+        }
+    });
 
-  it('uses the configured TTL when env is set', async () => {
-    const original = process.env.appCacheTtl;
-    process.env.appCacheTtl = '1200';
+    it('uses the configured TTL when env is set', async () => {
+        const original = process.env.appCacheTtl;
+        process.env.appCacheTtl = '1200';
 
-    const { default: cache } = await loadCacheModule();
+        const { default: cache } = await loadCacheModule();
 
-    expect(cache).toBe(mocks.instance);
-    expect(mocks.nodeCache).toHaveBeenCalledWith({ stdTTL: 1200 });
+        expect(cache).toBe(mocks.instance);
+        expect(mocks.nodeCache).toHaveBeenCalledWith({ stdTTL: 1200 });
 
-    if (original === undefined) {
-      delete process.env.appCacheTtl;
-    }
-    else {
-      process.env.appCacheTtl = original;
-    }
-  });
+        if (original === undefined) {
+            delete process.env.appCacheTtl;
+        } else {
+            process.env.appCacheTtl = original;
+        }
+    });
 });

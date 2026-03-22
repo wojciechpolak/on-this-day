@@ -9,22 +9,22 @@ a convenient way to look back at your personal history.
 ## Features
 
 - **View Events by Day, Week, Month, or Day of the Month**: Toggle
-    between viewing events that happened on this exact day, during
-    this week, throughout this month, or on the same day of any month
-    in previous years.
+  between viewing events that happened on this exact day, during
+  this week, throughout this month, or on the same day of any month
+  in previous years.
 - **Multiple Calendar Support**: Fetch and merge events from multiple
-    ICS calendar URLs.
+  ICS calendar URLs.
 - **Tabs for Event Sources**: View events from your personal ICS
-    calendars or explore historical events from Wikipedia's "On This
-    Day" feature.
-  - **Personal Events**: Displays events from your calendars.
-  - **Historical Events**: Shows global historical events from
+  calendars or explore historical events from Wikipedia's "On This
+  Day" feature.
+    - **Personal Events**: Displays events from your calendars.
+    - **Historical Events**: Shows global historical events from
       Wikipedia that happened on this day.
 - **Automatic Dark Mode**: Enjoy a user interface that automatically
-    adjusts between light and dark mode based on your system
-    preferences.
+  adjusts between light and dark mode based on your system
+  preferences.
 - **Relative Time Display**: Events display how long ago they
-    occurred, making it easy to see the time elapsed since each event.
+  occurred, making it easy to see the time elapsed since each event.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./.screenshots/main-view-dark.png">
@@ -68,20 +68,22 @@ curl https://raw.githubusercontent.com/wojciechpolak/on-this-day/master/docker-c
 ### Running from the source code
 
 1. Clone the repository:
-   ```shell
-   git clone https://github.com/wojciechpolak/on-this-day.git
-   ```
+
+    ```shell
+    git clone https://github.com/wojciechpolak/on-this-day.git
+    ```
 
 2. Install dependencies:
-   ```shell
-   cd on-this-day
-   npm ci
-   ```
+
+    ```shell
+    cd on-this-day
+    npm ci
+    ```
 
 3. Start the server:
-   ```shell
-   npm start
-   ```
+    ```shell
+    npm start
+    ```
 
 ## Testing
 

@@ -20,162 +20,159 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  useRuntimeConfig: vi.fn(),
-  getQuery: vi.fn(),
-  setResponseHeader: vi.fn(),
-  createError: vi.fn((message: unknown) => new Error(String(message))),
-  cache: {
-    has: vi.fn(),
-    get: vi.fn(),
-    set: vi.fn(),
-  },
-  logger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    error: vi.fn(),
-  },
-  wiki2ics: vi.fn(),
+    useRuntimeConfig: vi.fn(),
+    getQuery: vi.fn(),
+    setResponseHeader: vi.fn(),
+    createError: vi.fn((message: unknown) => new Error(String(message))),
+    cache: {
+        has: vi.fn(),
+        get: vi.fn(),
+        set: vi.fn(),
+    },
+    logger: {
+        debug: vi.fn(),
+        info: vi.fn(),
+        error: vi.fn(),
+    },
+    wiki2ics: vi.fn(),
 }));
 
 vi.mock('#imports', () => ({
-  useRuntimeConfig: mocks.useRuntimeConfig,
+    useRuntimeConfig: mocks.useRuntimeConfig,
 }));
 
 vi.mock('../cache', () => ({
-  default: mocks.cache,
+    default: mocks.cache,
 }));
 
 vi.mock('../logger', () => ({
-  default: mocks.logger,
+    default: mocks.logger,
 }));
 
 vi.mock('../wiki2ics', () => ({
-  default: mocks.wiki2ics,
+    default: mocks.wiki2ics,
 }));
 
 interface TestEvent {
-  node: {
-    res: {
-      setHeader: ReturnType<typeof vi.fn>;
-      end: ReturnType<typeof vi.fn>;
+    node: {
+        res: {
+            setHeader: ReturnType<typeof vi.fn>;
+            end: ReturnType<typeof vi.fn>;
+        };
     };
-  };
 }
 
 function createEvent(): TestEvent {
-  return {
-    node: {
-      res: {
-        setHeader: vi.fn(),
-        end: vi.fn(),
-      },
-    },
-  };
+    return {
+        node: {
+            res: {
+                setHeader: vi.fn(),
+                end: vi.fn(),
+            },
+        },
+    };
 }
 
 async function loadHandler() {
-  vi.stubGlobal('defineEventHandler', (handler: unknown) => handler);
-  vi.stubGlobal('getQuery', mocks.getQuery);
-  vi.stubGlobal('setResponseHeader', mocks.setResponseHeader);
-  vi.stubGlobal('createError', mocks.createError);
-  return await import('./fetch-wikipedia.get');
+    vi.stubGlobal('defineEventHandler', (handler: unknown) => handler);
+    vi.stubGlobal('getQuery', mocks.getQuery);
+    vi.stubGlobal('setResponseHeader', mocks.setResponseHeader);
+    vi.stubGlobal('createError', mocks.createError);
+    return await import('./fetch-wikipedia.get');
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
-  vi.unstubAllGlobals();
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe('fetch-wikipedia.get', () => {
-  it('fetches, caches, parses, and sorts wikipedia events', async () => {
-    mocks.useRuntimeConfig.mockReturnValue({
-      appCacheTtl: 3600,
-      appWikipediaSections: 'Events,Births',
-      appWikipediaLangEnforce: true,
-      appWikipediaLang: 'pl',
+    it('fetches, caches, parses, and sorts wikipedia events', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 3600,
+            appWikipediaSections: 'Events,Births',
+            appWikipediaLangEnforce: true,
+            appWikipediaLang: 'pl',
+        });
+        mocks.getQuery.mockReturnValue({
+            date: '2025-03-19',
+            lang: 'en',
+        });
+        mocks.cache.has.mockReturnValue(false);
+        mocks.wiki2ics.mockResolvedValue(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20250318T000000Z',
+                'DTEND:20250318T000000Z',
+                'SUMMARY:Events: Earlier',
+                'DESCRIPTION:Earlier',
+                'END:VEVENT',
+                'BEGIN:VEVENT',
+                'DTSTART:20250319T000000Z',
+                'DTEND:20250319T000000Z',
+                'SUMMARY:Births: Later',
+                'DESCRIPTION:Later',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        const result = await handler(event);
+
+        expect(mocks.setResponseHeader).toHaveBeenCalledWith(
+            event,
+            'Cache-Control',
+            'max-age=3600',
+        );
+        expect(mocks.wiki2ics).toHaveBeenCalledWith('2025-03-19', ['Events', 'Births'], 'pl');
+        expect(mocks.cache.set).toHaveBeenCalledWith(
+            'wikipediaData-pl-2025-03-19',
+            expect.any(String),
+            3600,
+        );
+        expect(result).toHaveLength(2);
+
+        const summaries = result.map((item) => item.SUMMARY);
+        expect(summaries).toEqual(['Births: Later', 'Events: Earlier']);
     });
-    mocks.getQuery.mockReturnValue({
-      date: '2025-03-19',
-      lang: 'en',
+
+    it('returns cached raw ICS when requested', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 120,
+            appWikipediaSections: 'Events,Births',
+            appWikipediaLangEnforce: false,
+            appWikipediaLang: 'en',
+        });
+        mocks.getQuery.mockReturnValue({
+            date: '2025-03-19',
+            raw: '1',
+            lang: 'en',
+        });
+        mocks.cache.has.mockReturnValue(true);
+        mocks.cache.get.mockReturnValue(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20250319T000000Z',
+                'DTEND:20250319T000000Z',
+                'SUMMARY:Cached',
+                'DESCRIPTION:Cached',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await handler(event);
+
+        expect(event.node.res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/calendar');
+        expect(event.node.res.end).toHaveBeenCalledWith(expect.stringContaining('SUMMARY:Cached'));
+        expect(mocks.wiki2ics).not.toHaveBeenCalled();
     });
-    mocks.cache.has.mockReturnValue(false);
-    mocks.wiki2ics.mockResolvedValue([
-      'BEGIN:VCALENDAR',
-      'BEGIN:VEVENT',
-      'DTSTART:20250318T000000Z',
-      'DTEND:20250318T000000Z',
-      'SUMMARY:Events: Earlier',
-      'DESCRIPTION:Earlier',
-      'END:VEVENT',
-      'BEGIN:VEVENT',
-      'DTSTART:20250319T000000Z',
-      'DTEND:20250319T000000Z',
-      'SUMMARY:Births: Later',
-      'DESCRIPTION:Later',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\n'));
-
-    const { default: handler } = await loadHandler();
-    const event = createEvent();
-
-    const result = await handler(event);
-
-    expect(mocks.setResponseHeader).toHaveBeenCalledWith(
-      event,
-      'Cache-Control',
-      'max-age=3600',
-    );
-    expect(mocks.wiki2ics).toHaveBeenCalledWith(
-      '2025-03-19',
-      ['Events', 'Births'],
-      'pl',
-    );
-    expect(mocks.cache.set).toHaveBeenCalledWith(
-      'wikipediaData-pl-2025-03-19',
-      expect.any(String),
-      3600,
-    );
-    expect(result).toHaveLength(2);
-
-    const summaries = result.map((item) => item.SUMMARY);
-    expect(summaries).toEqual(['Births: Later', 'Events: Earlier']);
-  });
-
-  it('returns cached raw ICS when requested', async () => {
-    mocks.useRuntimeConfig.mockReturnValue({
-      appCacheTtl: 120,
-      appWikipediaSections: 'Events,Births',
-      appWikipediaLangEnforce: false,
-      appWikipediaLang: 'en',
-    });
-    mocks.getQuery.mockReturnValue({
-      date: '2025-03-19',
-      raw: '1',
-      lang: 'en',
-    });
-    mocks.cache.has.mockReturnValue(true);
-    mocks.cache.get.mockReturnValue([
-      'BEGIN:VCALENDAR',
-      'BEGIN:VEVENT',
-      'DTSTART:20250319T000000Z',
-      'DTEND:20250319T000000Z',
-      'SUMMARY:Cached',
-      'DESCRIPTION:Cached',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\n'));
-
-    const { default: handler } = await loadHandler();
-    const event = createEvent();
-
-    await handler(event);
-
-    expect(event.node.res.setHeader).toHaveBeenCalledWith(
-      'Content-Type',
-      'text/calendar',
-    );
-    expect(event.node.res.end).toHaveBeenCalledWith(expect.stringContaining('SUMMARY:Cached'));
-    expect(mocks.wiki2ics).not.toHaveBeenCalled();
-  });
 });

@@ -1,0 +1,11 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["typescript", "vue"],
+    "rules": {
+        "semi": "error",
+        "no-console": "error",
+        "no-debugger": "error",
+        "typescript/no-explicit-any": "error",
+        "vue/no-v-html": "error"
+    }
+}

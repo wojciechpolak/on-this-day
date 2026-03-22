@@ -18,9 +18,10 @@
  */
 
 import ical from 'ical-generator';
+import { isTag, type Element } from 'domhandler';
 import { DateTime } from 'luxon';
-import logger from './logger';
 import * as cheerio from 'cheerio';
+import logger from './logger';
 
 const wikiExtractor: Record<string, RegExp> = {
     en: new RegExp('^(\\d+)(\\s*BC)?\\s*–\\s*(.*)'),
@@ -51,7 +52,7 @@ interface WikiSectionsResponse {
             '*': string;
         };
         title: string;
-    },
+    };
     error?: {
         code: string;
         info: string;
@@ -67,40 +68,31 @@ export interface WikiEvent {
 /**
  * Fetches Wikipedia's On This Day events and converts them to ICS
  */
-async function wiki2ics(dateParam: string, sectionTitles: string[], lang='en'): Promise<string> {
-
+async function wiki2ics(dateParam: string, sectionTitles: string[], lang = 'en'): Promise<string> {
     // Parse the date parameter or use the current date
     let dateObj;
     if (dateParam) {
-        dateObj = DateTime.fromISO(dateParam, {zone: 'utc'});
+        dateObj = DateTime.fromISO(dateParam, { zone: 'utc' });
         if (!dateObj.isValid) {
             throw new Error('Invalid date format. Please use ISO format (YYYY-MM-DD).');
         }
-    }
-    else {
+    } else {
         dateObj = DateTime.local();
     }
 
-    sectionTitles = sectionTitles.length && sectionTitles || getSectionTitles(lang);
+    sectionTitles = (sectionTitles.length && sectionTitles) || getSectionTitles(lang);
     logger.debug('sectionTitles: %s', sectionTitles);
 
     let dateStr;
     // Format the date into the Wikipedia page title format, considering localization
     if (lang === 'pl' || lang === 'es' || lang === 'de' || lang === 'fr') {
-        dateStr = dateObj
-            .setLocale(lang)
-            .toLocaleString({
-                day: 'numeric',
-                month: 'long',
-            }); // e.g. '1 lipca'
-    }
-    else {
-        const localizedMonth = dateObj
-            .setLocale(lang)
-            .toFormat('LLLL'); // Full month name
-        const localizedDay = dateObj
-            .setLocale(lang)
-            .toFormat('d'); // Day of the month
+        dateStr = dateObj.setLocale(lang).toLocaleString({
+            day: 'numeric',
+            month: 'long',
+        }); // e.g. '1 lipca'
+    } else {
+        const localizedMonth = dateObj.setLocale(lang).toFormat('LLLL'); // Full month name
+        const localizedDay = dateObj.setLocale(lang).toFormat('d'); // Day of the month
         dateStr = `${localizedMonth} ${localizedDay}`; // e.g. 'October 21'
     }
 
@@ -136,7 +128,7 @@ async function wiki2ics(dateParam: string, sectionTitles: string[], lang='en'): 
     }
 
     // Generate ICS data
-    const cal = ical({name: `Events on ${dateStr}`});
+    const cal = ical({ name: `Events on ${dateStr}` });
 
     for (const [section, events] of Object.entries(allEvents)) {
         for (const event of events) {
@@ -156,18 +148,17 @@ async function wiki2ics(dateParam: string, sectionTitles: string[], lang='en'): 
                 // Clean description
                 descriptionText = descriptionText
                     .replace(/\s+([.,])/g, '$1')
-                    .replace(/\s+/g, ' ').trim();
+                    .replace(/\s+/g, ' ')
+                    .trim();
                 const year = parseInt(yearStr, 10);
                 if (bc) {
                     // BCE date handling
                     // Skip BCE events
                     continue;
-                }
-                else {
+                } else {
                     eventYear = year;
                 }
-            }
-            else {
+            } else {
                 // No year found; skip the event
                 continue;
             }
@@ -207,34 +198,13 @@ function generateUID(): string {
 /**
  * Gets translated section titles
  */
-export function getSectionTitles(lang='en'): string[] {
+export function getSectionTitles(lang = 'en'): string[] {
     const titles: Record<string, string[]> = {
-        en: [
-            'Events',
-            'Births',
-            'Deaths'
-        ],
-        pl: [
-            'Wydarzenia w Polsce',
-            'Wydarzenia na świecie',
-            'Urodzili się',
-            'Zmarli'
-        ],
-        es: [
-            'Acontecimientos',
-            'Nacimientos',
-            'Fallecimientos',
-        ],
-        de: [
-            'Ereignisse',
-            'Geboren',
-            'Gestorben',
-        ],
-        fr: [
-            'Événements',
-            'Naissances',
-            'Décès',
-        ],
+        en: ['Events', 'Births', 'Deaths'],
+        pl: ['Wydarzenia w Polsce', 'Wydarzenia na świecie', 'Urodzili się', 'Zmarli'],
+        es: ['Acontecimientos', 'Nacimientos', 'Fallecimientos'],
+        de: ['Ereignisse', 'Geboren', 'Gestorben'],
+        fr: ['Événements', 'Naissances', 'Décès'],
     };
     return titles[lang] || titles['en'] || [''];
 }
@@ -242,8 +212,11 @@ export function getSectionTitles(lang='en'): string[] {
 /**
  * Gets section indexes
  */
-async function getSectionIndexes(apiUrl: string, title: string,
-                                 sectionTitles: string[]): Promise<Record<string, string>> {
+async function getSectionIndexes(
+    apiUrl: string,
+    title: string,
+    sectionTitles: string[],
+): Promise<Record<string, string>> {
     const params = new URLSearchParams({
         action: 'parse',
         page: title,
@@ -251,7 +224,9 @@ async function getSectionIndexes(apiUrl: string, title: string,
         format: 'json',
     });
 
-    const data: WikiSectionsResponse = await $fetch(`${apiUrl}?${params}`, {responseType: 'json'});
+    const data: WikiSectionsResponse = await $fetch(`${apiUrl}?${params}`, {
+        responseType: 'json',
+    });
 
     if (data.error) {
         logger.error(`Error fetching sections: ${data.error.info}`);
@@ -273,8 +248,11 @@ async function getSectionIndexes(apiUrl: string, title: string,
 /**
  * Gets section content
  */
-async function getSectionContent(apiUrl: string, title: string,
-                                 sectionIndex: string): Promise<string> {
+async function getSectionContent(
+    apiUrl: string,
+    title: string,
+    sectionIndex: string,
+): Promise<string> {
     const params = new URLSearchParams({
         action: 'parse',
         page: title,
@@ -283,7 +261,9 @@ async function getSectionContent(apiUrl: string, title: string,
         format: 'json',
     });
 
-    const data: WikiSectionsResponse = await $fetch(`${apiUrl}?${params}`, {responseType: 'json'});
+    const data: WikiSectionsResponse = await $fetch(`${apiUrl}?${params}`, {
+        responseType: 'json',
+    });
 
     if (data.error) {
         logger.error(`Error fetching section content: ${data.error.info}`);
@@ -296,55 +276,59 @@ async function getSectionContent(apiUrl: string, title: string,
 /**
  * Extracts events from content
  */
-export function extractEventsFromContent(content: string, title: string, lang: string): WikiEvent[] {
+export function extractEventsFromContent(
+    content: string,
+    title: string,
+    lang: string,
+): WikiEvent[] {
     const $ = cheerio.load(content);
     const events: WikiEvent[] = [];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    $('li').each((_i: number, elem: any) => {
+    $('li').each((_i: number, elem) => {
         // Remove all <sup> elements within this <li>
         $(elem).find('sup').remove();
 
         // Process all <a> tags to include full URLs
-        $(elem).find('a').each((_i, link) => {
-            const $link = $(link);
-            const href: string = $link.attr('href') as string;
+        $(elem)
+            .find('a')
+            .each((_i, link) => {
+                const $link = $(link);
+                const href = $link.attr('href');
 
-            // Build the full URL
-            let fullUrl = href;
-            if (href.startsWith('/')) {
-                fullUrl = `https://${lang}.wikipedia.org${href}`;
-            }
-            else if (href.startsWith('#')) {
-                fullUrl = `https://${lang}.wikipedia.org/wiki/` + encodeURIComponent(title) + href;
-            }
-            else if (href.startsWith('http')) {
-                // fullUrl is already complete
-            }
-            else {
-                fullUrl = `https://${lang}.wikipedia.org/wiki/${href}`;
-            }
+                if (!href) {
+                    return;
+                }
 
-            // Update the href attribute to the full URL
-            $link
-                .attr('href', fullUrl)
-                .attr('rel', 'noreferrer')
-                .attr('target', '_blank');
-        });
+                // Build the full URL
+                let fullUrl = href;
+                if (href.startsWith('/')) {
+                    fullUrl = `https://${lang}.wikipedia.org${href}`;
+                } else if (href.startsWith('#')) {
+                    fullUrl =
+                        `https://${lang}.wikipedia.org/wiki/` + encodeURIComponent(title) + href;
+                } else if (href.startsWith('http')) {
+                    // fullUrl is already complete
+                } else {
+                    fullUrl = `https://${lang}.wikipedia.org/wiki/${href}`;
+                }
+
+                // Update the href attribute to the full URL
+                $link.attr('href', fullUrl).attr('rel', 'noreferrer').attr('target', '_blank');
+            });
 
         // Remove all tags except <a> by unwrapping them
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        unwrapElements($ as any, elem);
+        unwrapElements($, elem);
 
         const text = $(elem).text().replace(/\s+/g, ' ').trim();
-        const htmlContent = $(elem).html() as string;
+        const htmlContent = $(elem).html() ?? '';
 
         // Check if a text starts with a year and an en dash
         if ((wikiExtractor[lang] || wikiExtractor['en'] || / /).test(text)) {
             // Remove extra spaces before punctuation
             const cleanedText = text
                 .replace(/\s+([.,])/g, '$1')
-                .replace(/\s+/g, ' ').trim();
+                .replace(/\s+/g, ' ')
+                .trim();
             events.push({
                 text: cleanedText,
                 html: htmlContent,
@@ -357,16 +341,17 @@ export function extractEventsFromContent(content: string, title: string, lang: s
 /**
  * Recursive function to unwrap all elements except <a>
  */
-function unwrapElements($: cheerio.CheerioAPI, element: any) { // eslint-disable-line
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    $(element).contents().each(function (_index: number, elem: any) {
-        if (elem.type === 'tag' && elem.name !== 'a') {
-            // Recursively process child elements
-            unwrapElements($, elem);
-            // Replace the element with its contents
-            $(elem).replaceWith($(elem).contents());
-        }
-    });
+function unwrapElements($: cheerio.CheerioAPI, element: Element) {
+    $(element)
+        .contents()
+        .each(function (_index: number, elem) {
+            if (isTag(elem) && elem.name !== 'a') {
+                // Recursively process child elements
+                unwrapElements($, elem);
+                // Replace the element with its contents
+                $(elem).replaceWith($(elem).contents());
+            }
+        });
 }
 
 /**
@@ -379,8 +364,7 @@ function unwrapElements($: cheerio.CheerioAPI, element: any) { // eslint-disable
 export function createDate(year: number, month: number, day: number): null | Date {
     try {
         return new Date(Date.UTC(year, month - 1, day));
-    }
-    catch {
+    } catch {
         return null;
     }
 }

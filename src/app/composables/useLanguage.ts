@@ -24,6 +24,6 @@ import { useState } from '#imports';
  * Composable to manage the user's preferred language.
  */
 export const useLanguage = (): Ref<string> => {
-  // Initialize the language state with an empty string or a default value
-  return useState<string>('language', () => '');
+    // Initialize the language state with an empty string or a default value
+    return useState<string>('language', () => '');
 };

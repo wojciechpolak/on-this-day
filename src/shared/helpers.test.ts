@@ -23,53 +23,53 @@ import { parseInputText, sortEvents } from './helpers';
 import type { IcsEvent } from './ics-parser';
 
 describe('sortEvents', () => {
-  it('sorts events by DTSTART descending and falls back to DTEND', () => {
-    const events: IcsEvent[] = [
-      {
-        DTSTART: new Date('2024-01-01T00:00:00.000Z'),
-        DTEND: new Date('2024-01-01T01:00:00.000Z'),
-        SUMMARY: 'older',
-        DESCRIPTION: '',
-      },
-      {
-        DTSTART: new Date('2025-01-01T00:00:00.000Z'),
-        DTEND: new Date('2025-01-01T01:00:00.000Z'),
-        SUMMARY: 'newer',
-        DESCRIPTION: '',
-      },
-      {
-        DTSTART: new Date('2023-01-01T00:00:00.000Z'),
-        DTEND: new Date('2026-01-01T00:00:00.000Z'),
-        SUMMARY: 'fallback',
-        DESCRIPTION: '',
-      },
-    ];
+    it('sorts events by DTSTART descending and falls back to DTEND', () => {
+        const events: IcsEvent[] = [
+            {
+                DTSTART: new Date('2024-01-01T00:00:00.000Z'),
+                DTEND: new Date('2024-01-01T01:00:00.000Z'),
+                SUMMARY: 'older',
+                DESCRIPTION: '',
+            },
+            {
+                DTSTART: new Date('2025-01-01T00:00:00.000Z'),
+                DTEND: new Date('2025-01-01T01:00:00.000Z'),
+                SUMMARY: 'newer',
+                DESCRIPTION: '',
+            },
+            {
+                DTSTART: new Date('2023-01-01T00:00:00.000Z'),
+                DTEND: new Date('2026-01-01T00:00:00.000Z'),
+                SUMMARY: 'fallback',
+                DESCRIPTION: '',
+            },
+        ];
 
-    expect([...events].sort(sortEvents).map((event) => event.SUMMARY)).toEqual([
-      'newer',
-      'older',
-      'fallback',
-    ]);
-  });
+        expect([...events].sort(sortEvents).map((event) => event.SUMMARY)).toEqual([
+            'newer',
+            'older',
+            'fallback',
+        ]);
+    });
 });
 
 describe('parseInputText', () => {
-  it('escapes HTML, linkifies URLs, and converts newlines to <br>', () => {
-    const result = parseInputText('Hello <b>world</b>\nVisit https://example.com/path');
+    it('escapes HTML, linkifies URLs, and converts newlines to <br>', () => {
+        const result = parseInputText('Hello <b>world</b>\nVisit https://example.com/path');
 
-    expect(result).toBe(
-      'Hello &lt;b&gt;world&lt;/b&gt;<br>Visit ' +
-      '<a href="https://example.com/path" target="_blank" rel="noopener noreferrer">' +
-      'https://example.com/path</a>',
-    );
-  });
+        expect(result).toBe(
+            'Hello &lt;b&gt;world&lt;/b&gt;<br>Visit ' +
+                '<a href="https://example.com/path" target="_blank" rel="noopener noreferrer">' +
+                'https://example.com/path</a>',
+        );
+    });
 
-  it('escapes apostrophes and ampersands before linkification', () => {
-    const result = parseInputText("Rock & Roll's https://example.com");
+    it('escapes apostrophes and ampersands before linkification', () => {
+        const result = parseInputText("Rock & Roll's https://example.com");
 
-    expect(result).toContain('Rock &amp; Roll&#039;s ');
-    expect(result).toContain(
-      '<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>',
-    );
-  });
+        expect(result).toContain('Rock &amp; Roll&#039;s ');
+        expect(result).toContain(
+            '<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>',
+        );
+    });
 });
