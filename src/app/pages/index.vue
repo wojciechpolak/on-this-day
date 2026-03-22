@@ -24,6 +24,7 @@
 import { ref, computed, watch } from 'vue';
 import { parseInputText } from '#shared/helpers';
 import { useLanguage } from '~/composables/useLanguage';
+import { useCurrentDate } from '~/composables/useCurrentDate';
 import type { IcsEvent } from '#shared/ics-parser';
 
 const selectedTab = ref<'tab-personal' | 'tab-history'>('tab-personal');
@@ -35,7 +36,7 @@ const viewMode = useCookie<'day' | 'week' | 'month' | 'dayOfMonth'>(STORAGE_KEY_
     maxAge: 86400 * 365
 });
 
-const selectedDate = ref(new Date());
+const selectedDate = ref(useCurrentDate());
 
 const personalEvents = ref<IcsEvent[]>([]);
 const historyEvents = ref<IcsEvent[]>([]);
@@ -296,7 +297,7 @@ function handleDateChange(direction: number) {
 }
 
 function resetDate() {
-    selectedDate.value = new Date();
+    selectedDate.value = useCurrentDate();
     filteredPersonalEvents.value = filterPersonalEvents(personalEvents.value);
     if (isHistoryVisible()) {
         refreshWiki();
@@ -320,7 +321,7 @@ function renderEventHtml(event: IcsEvent): string {
 }
 
 function getRelativeTime(eventDate: Date) {
-    const today: Date = new Date();
+    const today: Date = useCurrentDate();
     const timeDifference: number = eventDate.getTime() - today.getTime();
     const secondsDifference = Math.round(timeDifference / 1000);
     const rtf = new Intl.RelativeTimeFormat(userLang.value, {numeric: 'auto'});

@@ -27,6 +27,14 @@ const rootDir = path.dirname(fileURLToPath(new URL('../package.json', import.met
 const nuxtCli = path.join(rootDir, 'node_modules/nuxt/bin/nuxt.mjs');
 
 function utcNow() {
+  const fixedVrtNow = process.env.VRT === '1' ? '2026-03-21T12:00:00.000Z' : '';
+  if (fixedVrtNow) {
+    const fixedDate = new Date(fixedVrtNow);
+    if (!Number.isNaN(fixedDate.getTime())) {
+      return fixedDate;
+    }
+  }
+
   const now = new Date();
   return new Date(Date.UTC(
     now.getUTCFullYear(),
