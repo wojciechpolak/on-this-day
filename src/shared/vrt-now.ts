@@ -19,6 +19,17 @@
 
 export const DEFAULT_VRT_FIXED_DATE = '2026-03-21T12:00:00.000Z';
 
-export function createCurrentDate(isVrt: boolean): Date {
-    return isVrt ? new Date(DEFAULT_VRT_FIXED_DATE) : new Date();
+export function resolveVrtFixedDate(value?: string): string {
+    if (value) {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toISOString();
+        }
+    }
+
+    return DEFAULT_VRT_FIXED_DATE;
+}
+
+export function createCurrentDate(isVrt: boolean, fixedVrtDate?: string): Date {
+    return isVrt ? new Date(resolveVrtFixedDate(fixedVrtDate)) : new Date();
 }

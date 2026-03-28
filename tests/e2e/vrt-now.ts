@@ -17,8 +17,10 @@
  * with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { DEFAULT_VRT_FIXED_DATE } from '../../src/shared/vrt-now';
+import { resolveVrtFixedDate } from '../../src/shared/vrt-now';
 
 export function getCurrentDate(): Date {
-    return process.env.VRT === '1' ? new Date(DEFAULT_VRT_FIXED_DATE) : new Date();
+    return process.env.VRT === '1'
+        ? new Date(resolveVrtFixedDate(process.env.VRT_FIXED_DATE))
+        : new Date();
 }

@@ -33,7 +33,26 @@ if (import.meta.server) {
 
 <template>
     <div id="app">
-        <h1>{{ props?.error?.statusCode }}</h1>
-        <NuxtLink to="/">Go back home</NuxtLink>
+        <div class="page-shell">
+            <section class="hero">
+                <div class="hero-copy">
+                    <p class="eyebrow">Page unavailable</p>
+                    <h1>{{ props?.error?.statusCode || 'Error' }}</h1>
+                    <p class="hero-description">
+                        {{ props?.error?.message || 'Something interrupted the timeline.' }}
+                    </p>
+                </div>
+            </section>
+
+            <section class="tabs-container">
+                <div class="tab-content">
+                    <p class="section-label">Recovery</p>
+                    <h2 class="section-title">Return to the archive and try again.</h2>
+                    <p class="section-note">
+                        <NuxtLink to="/">Go back home</NuxtLink>
+                    </p>
+                </div>
+            </section>
+        </div>
     </div>
 </template>

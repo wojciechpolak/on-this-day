@@ -23,5 +23,6 @@ import { createCurrentDate } from '#shared/vrt-now';
 export const useCurrentDate = (): Date => {
     const runtimeConfig = useRuntimeConfig();
     const isVrt = runtimeConfig.public.vrtEnabled as boolean | undefined;
-    return createCurrentDate(!!isVrt);
+    const vrtFixedDate = runtimeConfig.public.vrtFixedDate as string | undefined;
+    return createCurrentDate(!!isVrt, vrtFixedDate);
 };

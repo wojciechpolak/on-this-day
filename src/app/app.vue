@@ -36,12 +36,12 @@ useHead({
         },
         {
             name: 'theme-color',
-            content: '#f0f0f0',
+            content: '#f5f5f5',
             media: '(prefers-color-scheme: light)',
         },
         {
             name: 'theme-color',
-            content: '#121212',
+            content: '#070809',
             media: '(prefers-color-scheme: dark)',
         },
     ],

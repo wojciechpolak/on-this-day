@@ -26,7 +26,8 @@
     "e2e:vrt:baseline": "VRT=1 playwright test --update-snapshots",
     "e2e:vrt:report": "playwright show-report",
     "e2e:vrt:docker": "./scripts/vrt-docker.sh",
-    "e2e:vrt:baseline:docker": "./scripts/vrt-docker.sh baseline"
+    "e2e:vrt:baseline:docker": "./scripts/vrt-docker.sh baseline",
+    "screenshots:update": "node scripts/update-readme-screenshots.mjs"
   },
   "dependencies": {
     "@vite-pwa/nuxt": "^1.1.1",

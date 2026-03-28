@@ -25,9 +25,22 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = path.dirname(fileURLToPath(new URL('../package.json', import.meta.url)));
 const nuxtCli = path.join(rootDir, 'node_modules/nuxt/bin/nuxt.mjs');
+const defaultVrtFixedDate = '2026-03-21T12:00:00.000Z';
+
+function resolveVrtFixedDate(value) {
+    if (value) {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toISOString();
+        }
+    }
+
+    return defaultVrtFixedDate;
+}
 
 function utcNow() {
-    const fixedVrtNow = process.env.VRT === '1' ? '2026-03-21T12:00:00.000Z' : '';
+    const fixedVrtNow =
+        process.env.VRT === '1' ? resolveVrtFixedDate(process.env.VRT_FIXED_DATE) : '';
     if (fixedVrtNow) {
         const fixedDate = new Date(fixedVrtNow);
         if (!Number.isNaN(fixedDate.getTime())) {
@@ -235,7 +248,7 @@ const env = {
     HOST: '127.0.0.1',
     APP_ICS_URLS: `http://127.0.0.1:${mockPort}/cal1.ics,${cal2TempPath}`,
     APP_WIKIPEDIA_LANG: 'en',
-    APP_WIKIPEDIA_SECTIONS: 'Events,Births,Deaths',
+    APP_WIKIPEDIA_SECTIONS: 'Events,Births',
     NITRO_HOST: '127.0.0.1',
     NITRO_PORT: '4173',
     PORT: '4173',

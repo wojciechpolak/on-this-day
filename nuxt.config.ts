@@ -30,6 +30,7 @@ export default defineNuxtConfig({
     runtimeConfig: {
         public: {
             vrtEnabled: process.env.VRT === '1',
+            vrtFixedDate: process.env.VRT_FIXED_DATE,
         },
         appIcsUrls: process.env.APP_ICS_URLS,
         appCacheTtl: process.env.APP_CACHE_TTL ? parseInt(process.env.APP_CACHE_TTL) : 86400,

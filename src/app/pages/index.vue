@@ -56,11 +56,25 @@ const dateSubtitle = computed(() => {
         month: 'short',
         day: 'numeric',
     };
-    return `(${selectedDate.value.toLocaleDateString(userLang.value, dateOpts)})`;
+    return `${selectedDate.value.toLocaleDateString(userLang.value, dateOpts)}`;
 });
 
 const showLoading = ref(false);
 let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+
+const activeCollectionCount = computed(() => {
+    return selectedTab.value === 'tab-history'
+        ? historyEvents.value.length
+        : filteredPersonalEvents.value.length;
+});
+
+const personalMotionContext = computed(() => {
+    return `${viewMode.value}-${isoDate.value}-${filteredPersonalEvents.value.length}`;
+});
+
+const historyMotionContext = computed(() => {
+    return `${isoDate.value}-${historyEvents.value.length}`;
+});
 
 /**
  * Function to convert ISO date strings to Date objects
@@ -310,12 +324,18 @@ function renderEventHtml(event: IcsEvent): string {
 
     return `
     <h2>
-      <span class="title">${summary}</span>
       ${relDate ? `<span class="rel-date">${relDate}</span>` : ''}
+      <span class="title">${summary}</span>
     </h2>
     <p class="description">${description}</p>
     <footer><time>${dateRange}</time></footer>
   `;
+}
+
+function getEventKey(prefix: string, event: IcsEvent) {
+    const start = event.DTSTART?.toISOString() || 'no-start';
+    const end = event.DTEND?.toISOString() || 'no-end';
+    return `${prefix}-${start}-${end}-${event.SUMMARY || ''}`;
 }
 
 function getRelativeTime(eventDate: Date) {
@@ -387,156 +407,249 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
 
 <template>
     <div id="app">
-        <h1 aria-live="polite">{{ titleText }}</h1>
+        <div class="page-shell">
+            <header class="hero">
+                <div class="hero-heading">
+                    <h1 aria-live="polite">{{ titleText }}</h1>
+                </div>
 
-        <!-- Date navigation -->
-        <nav class="date">
-            <button class="button left" aria-label="Previous Date" @click="handleDateChange(-1)">
-                -
-            </button>
-            <button id="date-subtitle" aria-label="Reset to current date" @click="resetDate">
-                {{ dateSubtitle }}
-            </button>
-            <button class="button right" aria-label="Next Date" @click="handleDateChange(+1)">
-                +
-            </button>
-        </nav>
+                <div class="hero-facts" aria-label="Current view summary">
+                    <article class="fact-card">
+                        <strong>{{ activeCollectionCount }} entries</strong>
+                    </article>
+                </div>
 
-        <!-- Tabs -->
-        <main class="tabs-container">
-            <nav class="tabs" role="tablist">
-                <button
-                    class="tab"
-                    role="tab"
-                    accesskey="1"
-                    aria-controls="tab-personal"
-                    :class="{ active: selectedTab === 'tab-personal' }"
-                    @click="selectTab('tab-personal')"
-                >
-                    Personal Events
-                </button>
-                <button
-                    v-if="shouldShowHistoryTab"
-                    class="tab"
-                    role="tab"
-                    accesskey="2"
-                    aria-controls="tab-history"
-                    :class="{ active: selectedTab === 'tab-history' }"
-                    @click="selectTab('tab-history')"
-                >
-                    Historical Events
-                </button>
-            </nav>
-
-            <!-- Personal events tab content -->
-            <div
-                v-show="selectedTab === 'tab-personal'"
-                id="tab-personal"
-                class="tab-content"
-                role="tabpanel"
-                aria-labelledby="tab-personal"
-            >
-                <!-- Mode radio buttons -->
-                <fieldset class="mode">
-                    <legend class="visually-hidden">View Mode</legend>
-                    <label>
-                        <input
-                            v-model="viewMode"
-                            type="radio"
-                            name="view-mode"
-                            value="day"
-                            accesskey="d"
-                        />
-                        Day
-                    </label>
-                    <label>
-                        <input
-                            v-model="viewMode"
-                            type="radio"
-                            name="view-mode"
-                            value="week"
-                            accesskey="w"
-                        />
-                        Week
-                    </label>
-                    <label>
-                        <input
-                            v-model="viewMode"
-                            type="radio"
-                            name="view-mode"
-                            value="month"
-                            accesskey="m"
-                        />
-                        Month
-                    </label>
-                    <label>
-                        <input
-                            v-model="viewMode"
-                            type="radio"
-                            name="view-mode"
-                            value="dayOfMonth"
-                        />
-                        Day of the Month
-                    </label>
-                </fieldset>
-
-                <!-- Personal events container -->
-                <div id="events-container" aria-live="polite" aria-label="Personal Events">
-                    <div v-if="showLoading" class="loading">Loading...</div>
-                    <div v-else-if="icsError" class="no-events-message">
-                        {{ getIcsErrorMessage }}
-                    </div>
-                    <div v-else>
-                        <div
-                            v-if="
-                                icsStatus !== 'pending' &&
-                                !showLoading &&
-                                filteredPersonalEvents.length === 0
-                            "
-                            class="no-events-message"
+                <div class="hero-toolbar">
+                    <nav class="date" aria-label="Selected date controls">
+                        <button
+                            class="button left"
+                            aria-label="Previous Date"
+                            @click="handleDateChange(-1)"
                         >
-                            Nothing found. Looks like today is a quiet day in history.
-                        </div>
-                        <!-- oxlint-disable vue/no-v-html -->
-                        <article
-                            v-for="(event, idx) in filteredPersonalEvents"
-                            :key="'personal-' + idx"
-                            class="event"
-                            v-html="renderEventHtml(event)"
-                        />
-                        <!-- oxlint-enable -->
-                    </div>
-                </div>
-            </div>
+                            <svg
+                                aria-hidden="true"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M10 3L5 8L10 13"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </button>
+                        <button
+                            id="date-subtitle"
+                            aria-label="Reset to current date"
+                            @click="resetDate"
+                        >
+                            {{ dateSubtitle }}
+                        </button>
+                        <button
+                            class="button right"
+                            aria-label="Next Date"
+                            @click="handleDateChange(+1)"
+                        >
+                            <svg
+                                aria-hidden="true"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M6 3L11 8L6 13"
+                                    stroke="currentColor"
+                                    stroke-width="1.75"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </button>
+                    </nav>
 
-            <!-- Historical events tab content -->
-            <div
-                v-show="selectedTab === 'tab-history'"
-                id="tab-history"
-                class="tab-content"
-                role="tabpanel"
-                aria-controls="tab-history"
-            >
-                <div id="history-container" aria-live="polite" aria-label="Historical Events">
-                    <div v-if="wikiStatus === 'pending'" class="loading">Loading...</div>
-                    <div v-else-if="wikiError" class="no-events-message">
-                        {{ getWikiErrorMessage }}
-                    </div>
-                    <div v-else>
-                        <div v-if="historyEvents.length === 0" class="no-events-message">
-                            Nothing found. Looks like today is a quiet day in history.
-                        </div>
-                        <!-- oxlint-disable vue/no-v-html -->
-                        <article
-                            v-for="(event, idx) in historyEvents"
-                            :key="'history-' + idx"
-                            class="event"
-                            v-html="renderEventHtml(event)"
-                        />
-                        <!-- oxlint-enable -->
-                    </div>
+                    <nav class="tabs" role="tablist" aria-label="Event source">
+                        <button
+                            id="tab-personal-button"
+                            class="tab"
+                            role="tab"
+                            accesskey="1"
+                            aria-controls="tab-personal"
+                            :aria-selected="selectedTab === 'tab-personal'"
+                            :class="{ active: selectedTab === 'tab-personal' }"
+                            @click="selectTab('tab-personal')"
+                        >
+                            Personal Events
+                        </button>
+                        <button
+                            v-if="shouldShowHistoryTab"
+                            id="tab-history-button"
+                            class="tab"
+                            role="tab"
+                            accesskey="2"
+                            aria-controls="tab-history"
+                            :aria-selected="selectedTab === 'tab-history'"
+                            :class="{ active: selectedTab === 'tab-history' }"
+                            @click="selectTab('tab-history')"
+                        >
+                            Historical Events
+                        </button>
+                    </nav>
                 </div>
-            </div>
-        </main>
+            </header>
+
+            <main class="tabs-container">
+                <Transition name="panel-swap" mode="out-in">
+                    <div
+                        v-if="selectedTab === 'tab-personal'"
+                        id="tab-personal"
+                        key="tab-personal"
+                        class="tab-content"
+                        role="tabpanel"
+                        aria-labelledby="tab-personal-button"
+                    >
+                        <fieldset class="mode">
+                            <legend class="visually-hidden">View Mode</legend>
+                            <label class="mode-option">
+                                <input
+                                    v-model="viewMode"
+                                    type="radio"
+                                    name="view-mode"
+                                    value="day"
+                                    accesskey="d"
+                                />
+                                <span data-mobile-label="Day">Day</span>
+                            </label>
+                            <label class="mode-option">
+                                <input
+                                    v-model="viewMode"
+                                    type="radio"
+                                    name="view-mode"
+                                    value="week"
+                                    accesskey="w"
+                                />
+                                <span data-mobile-label="Week">Week</span>
+                            </label>
+                            <label class="mode-option">
+                                <input
+                                    v-model="viewMode"
+                                    type="radio"
+                                    name="view-mode"
+                                    value="month"
+                                    accesskey="m"
+                                />
+                                <span data-mobile-label="Month">Month</span>
+                            </label>
+                            <label class="mode-option">
+                                <input
+                                    v-model="viewMode"
+                                    type="radio"
+                                    name="view-mode"
+                                    value="dayOfMonth"
+                                />
+                                <span data-mobile-label="Month Day">Day of the Month</span>
+                            </label>
+                        </fieldset>
+
+                        <div
+                            id="events-container"
+                            class="event-list"
+                            aria-live="polite"
+                            aria-label="Personal Events"
+                        >
+                            <Transition name="event-stack-fade" mode="out-in">
+                                <div v-if="showLoading" key="personal-loading" class="loading">
+                                    Loading...
+                                </div>
+                                <div
+                                    v-else-if="icsError"
+                                    key="personal-error"
+                                    class="no-events-message"
+                                >
+                                    {{ getIcsErrorMessage }}
+                                </div>
+                                <div v-else :key="personalMotionContext" class="event-stack">
+                                    <div
+                                        v-if="
+                                            icsStatus !== 'pending' &&
+                                            !showLoading &&
+                                            filteredPersonalEvents.length === 0
+                                        "
+                                        class="no-events-message"
+                                    >
+                                        Nothing found. Looks like today is a quiet day in history.
+                                    </div>
+                                    <!-- oxlint-disable vue/no-v-html -->
+                                    <article
+                                        v-for="(event, idx) in filteredPersonalEvents"
+                                        :key="getEventKey('personal', event)"
+                                        :style="{ '--stagger-index': idx }"
+                                        class="event"
+                                        v-html="renderEventHtml(event)"
+                                    />
+                                    <!-- oxlint-enable -->
+                                </div>
+                            </Transition>
+                        </div>
+                    </div>
+
+                    <div
+                        v-else-if="shouldShowHistoryTab"
+                        id="tab-history"
+                        key="tab-history"
+                        class="tab-content"
+                        role="tabpanel"
+                        aria-labelledby="tab-history-button"
+                    >
+                        <div
+                            id="history-container"
+                            class="event-list"
+                            aria-live="polite"
+                            aria-label="Historical Events"
+                        >
+                            <Transition name="event-stack-fade" mode="out-in">
+                                <div
+                                    v-if="wikiStatus === 'pending'"
+                                    key="history-loading"
+                                    class="loading"
+                                >
+                                    Loading...
+                                </div>
+                                <div
+                                    v-else-if="wikiError"
+                                    key="history-error"
+                                    class="no-events-message"
+                                >
+                                    {{ getWikiErrorMessage }}
+                                </div>
+                                <div v-else :key="historyMotionContext" class="event-stack">
+                                    <div
+                                        v-if="historyEvents.length === 0"
+                                        class="no-events-message"
+                                    >
+                                        Nothing found. Looks like today is a quiet day in history.
+                                    </div>
+                                    <!-- oxlint-disable vue/no-v-html -->
+                                    <article
+                                        v-for="(event, idx) in historyEvents"
+                                        :key="getEventKey('history', event)"
+                                        :style="{ '--stagger-index': idx }"
+                                        class="event"
+                                        v-html="renderEventHtml(event)"
+                                    />
+                                    <!-- oxlint-enable -->
+                                </div>
+                            </Transition>
+                        </div>
+                    </div>
+                </Transition>
+            </main>
+        </div>
     </div>
 </template>
