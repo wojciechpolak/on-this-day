@@ -1,6 +1,7 @@
-ARG node=24.14-slim
+ARG build_node=24.14-slim
+ARG run_node=24.14-alpine
 
-FROM node:${node} AS otd-base
+FROM node:${build_node} AS otd-base
 
 FROM otd-base AS otd-deps
 WORKDIR /app
@@ -14,19 +15,14 @@ COPY . .
 ENV NUXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# Production image, copy all the files and run next
-FROM otd-base AS otd-runner
+# Production image, only ship the bundled Nitro output on a small runtime base.
+FROM node:${run_node} AS otd-runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NUXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nuxtjs
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nuxtjs:nodejs .next
+RUN addgroup -S nodejs && adduser -S -u 1001 -G nodejs nuxtjs
 
 COPY --from=otd-builder --chown=nuxtjs:nodejs /app/.output ./
 
@@ -36,6 +32,6 @@ EXPOSE 8080
 ENV PORT=8080
 ENV HOST="0.0.0.0"
 
-HEALTHCHECK --interval=60m --timeout=3s CMD curl -f http://localhost:8080/ || exit 1
+HEALTHCHECK --interval=60m --timeout=3s CMD ["wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
 
 CMD ["node", "server/index.mjs"]
