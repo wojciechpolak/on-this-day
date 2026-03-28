@@ -91,4 +91,52 @@ describe('ICalParser', () => {
         expect(secondEvent.DTSTART_VALUE).toBe('DATE');
         expect(secondEvent.DTEND_VALUE).toBe('DATE');
     });
+
+    it('strips HTML markup from folded DESCRIPTION values', () => {
+        const parser = new ICalParser(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20250319T081530Z',
+                'DTEND:20250319T091530Z',
+                'SUMMARY:Sample visit',
+                'DESCRIPTION:<table><tbody><tr><td><br></td>',
+                ' <td>\u00A0</td><td><span>Sample Person</span></td></tr></tbody></table>',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
+
+        const [event] = parser.getEvents();
+
+        expect(event?.DESCRIPTION).toBe('Sample Person');
+    });
+
+    it('decodes HTML entities inside folded DESCRIPTION links', () => {
+        const parser = new ICalParser(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20230208T110000Z',
+                'DTEND:20230208T112000Z',
+                'SUMMARY:Duration test',
+                'DESCRIPTION:11:00-11:20<br>\\n<br><span>Sample duration note</span> (<a href="',
+                ' https://example.com/tools/duration?d1=29&m1=10&y1=2005&d2=8&m2=2&y2=2023&t',
+                ' i=on">https://example.com/tools/duration?d1=29&amp\\;m1=10&amp\\;y1=2005&a',
+                ' mp\\;d2=8&amp\\;m2=2&amp\\;y2=2023&amp\\;ti=on</a>)<br>\\n<br><a href="https',
+                ' ://example.com/albums/sample-gallery">https://example.com/albums/sample-gal',
+                ' lery</a>',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
+
+        const [event] = parser.getEvents();
+
+        expect(event?.DESCRIPTION).toContain(
+            '(https://example.com/tools/duration?d1=29&m1=10&y1=2005&d2=8&m2=2&y2=2023&ti=on)',
+        );
+        expect(event?.DESCRIPTION).toContain('https://example.com/albums/sample-gallery');
+        expect(event?.DESCRIPTION).not.toContain('&amp;');
+    });
 });

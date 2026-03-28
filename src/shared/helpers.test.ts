@@ -72,4 +72,18 @@ describe('parseInputText', () => {
             '<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>',
         );
     });
+
+    it('linkifies URLs with query params without swallowing trailing punctuation', () => {
+        const result = parseInputText(
+            '(https://example.com/tools/duration?d1=29&m1=10&y1=2005&d2=8&m2=2&y2=2023&ti=on)\nhttps://example.com/albums/sample-gallery',
+        );
+
+        expect(result).toContain(
+            '(<a href="https://example.com/tools/duration?d1=29&amp;m1=10&amp;y1=2005&amp;d2=8&amp;m2=2&amp;y2=2023&amp;ti=on" target="_blank" rel="noopener noreferrer">https://example.com/tools/duration?d1=29&amp;m1=10&amp;y1=2005&amp;d2=8&amp;m2=2&amp;y2=2023&amp;ti=on</a>)',
+        );
+        expect(result).toContain(
+            '<a href="https://example.com/albums/sample-gallery" target="_blank" rel="noopener noreferrer">https://example.com/albums/sample-gallery</a>',
+        );
+        expect(result).not.toContain('&amp;amp;');
+    });
 });

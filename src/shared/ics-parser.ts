@@ -1,7 +1,7 @@
 /**
- * ics-parser.ts v20250121
+ * ics-parser.ts v20260328
  *
- * Copyright (C) 2024-2025 Wojciech Polak
+ * Copyright (C) 2024-2026 Wojciech Polak
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -95,22 +95,30 @@ export default class ICalParser {
                         event[`${dateKey}_VALUE`] = 'DATE'; // Mark this as a DATE value
                     } else if (key.includes(';VALUE=TEXT')) {
                         const k = key.split(';')[0]!;
-                        event[k] = this.unescapeICalString(value);
+                        event[k] = this.normalizeFieldValue(k, this.unescapeICalString(value));
                         event[`${k}_VALUE`] = 'TEXT';
                     } else if (key.includes(';FMTTYPE=text/html')) {
                         const k = key.split(';')[0]!;
-                        event[k] = this.unescapeICalString(value);
+                        event[k] = this.normalizeFieldValue(k, this.unescapeICalString(value));
                         event[`${k}_VALUE`] = 'HTML';
                     } else {
                         if (key === 'DTSTART' || key === 'DTEND' || key === 'DTSTAMP') {
                             value = this.parseDate(value.padStart(16, '0'));
                         }
-                        if (typeof value === 'string' && value.startsWith('<html-blob>')) {
-                            event[key] = this.decodeHtmlBlob(
-                                this.unescapeICalString(value) as string,
+                        if (value === undefined) {
+                            return;
+                        }
+                        const unescapedValue = this.unescapeICalString(value);
+                        if (
+                            typeof unescapedValue === 'string' &&
+                            unescapedValue.startsWith('<html-blob>')
+                        ) {
+                            event[key] = this.normalizeFieldValue(
+                                key,
+                                this.decodeHtmlBlob(unescapedValue),
                             );
                         } else {
-                            event[key] = this.unescapeICalString(value as string);
+                            event[key] = this.normalizeFieldValue(key, unescapedValue);
                         }
                     }
                 }
@@ -142,10 +150,72 @@ export default class ICalParser {
             '&gt;': '>',
             '&quot;': '"',
             '&#39;': "'",
+            '&apos;': "'",
+            '&nbsp;': ' ',
         };
-        return str.replace(/&[a-zA-Z0-9#]+;/g, (match: string) => {
-            return entities[match] || match;
+        return str.replace(/&(?:[a-zA-Z][a-zA-Z0-9]+|#\d+|#x[0-9a-fA-F]+);/g, (match: string) => {
+            if (entities[match]) {
+                return entities[match];
+            }
+            if (match.startsWith('&#x')) {
+                const codePoint = Number.parseInt(match.slice(3, -1), 16);
+                return Number.isNaN(codePoint) ? match : String.fromCodePoint(codePoint);
+            }
+            if (match.startsWith('&#')) {
+                const codePoint = Number.parseInt(match.slice(2, -1), 10);
+                return Number.isNaN(codePoint) ? match : String.fromCodePoint(codePoint);
+            }
+            return match;
         });
+    }
+
+    /**
+     * Normalizes text fields that may contain accidental HTML markup.
+     * @param {string} key
+     * @param {string} value
+     * @returns {string}
+     */
+    normalizeTextField(key: string, value: string): string {
+        if (key !== 'DESCRIPTION' || !this.looksLikeHtml(value)) {
+            return value;
+        }
+
+        const blockBreaks = value
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/(?:p|div|tr|table|tbody|thead|tfoot|ul|ol|li|td|th|h[1-6])>/gi, '\n');
+        const decoded = this.decodeHtmlEntities(blockBreaks).replace(/\u00A0/g, ' ');
+
+        return decoded
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/[ \t]+\n/g, '\n')
+            .replace(/\n[ \t]+/g, '\n')
+            .replace(/[ \t]{2,}/g, ' ')
+            .replace(/\(\s+/g, '(')
+            .replace(/\s+\)/g, ')')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+    }
+
+    /**
+     * Normalizes a parsed field when it contains text and leaves dates untouched.
+     * @param {string} key
+     * @param {Date|string} value
+     * @returns {Date|string}
+     */
+    normalizeFieldValue(key: string, value: Date | string): Date | string {
+        if (typeof value !== 'string') {
+            return value;
+        }
+        return this.normalizeTextField(key, value);
+    }
+
+    /**
+     * Detects whether a text field contains HTML tags rather than plain text.
+     * @param {string} value
+     * @returns {boolean}
+     */
+    looksLikeHtml(value: string): boolean {
+        return /<\/?[a-z][^>]*>/i.test(value);
     }
 
     /**

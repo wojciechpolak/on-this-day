@@ -30,26 +30,48 @@ export function sortEvents(a: IcsEvent, b: IcsEvent): number {
  * Escapes HTML, linkifies URLs, and replaces newlines with <br>.
  */
 export function parseInputText(input: string) {
+    const replacements: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+    };
+    const urlRegex = /https?:\/\/[^\s<]+/gi;
+
     function escapeHTML(str: string) {
-        const replacements: Record<string, string> = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;',
-        };
         return str.replace(/[&<>"']/g, (char) => replacements[char] ?? '');
     }
 
-    function linkify(str: string) {
-        const urlRegex = /https?:\/\/[^\s/$.?#].[^\s]*/gi;
-        return str.replace(urlRegex, function (url) {
-            const escapedURL = escapeHTML(url);
-            return `<a href="${escapedURL}" target="_blank" rel="noopener noreferrer">${escapedURL}</a>`;
-        });
+    function splitTrailingPunctuation(url: string) {
+        const trailing: string[] = [];
+        while (/[),.;!?]$/.test(url)) {
+            trailing.unshift(url.slice(-1));
+            url = url.slice(0, -1);
+        }
+        return { url, trailing: trailing.join('') };
     }
 
-    const escapedText = escapeHTML(input);
-    const linkedText = linkify(escapedText);
-    return linkedText.replace(/\n/g, '<br>');
+    let result = '';
+    let lastIndex = 0;
+
+    for (const match of input.matchAll(urlRegex)) {
+        const matchedUrl = match[0];
+        const start = match.index ?? 0;
+        const end = start + matchedUrl.length;
+        const { url, trailing } = splitTrailingPunctuation(matchedUrl);
+
+        result += escapeHTML(input.slice(lastIndex, start));
+
+        if (url) {
+            const escapedUrl = escapeHTML(url);
+            result += `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapedUrl}</a>`;
+        }
+
+        result += escapeHTML(trailing);
+        lastIndex = end;
+    }
+
+    result += escapeHTML(input.slice(lastIndex));
+    return result.replace(/\n/g, '<br>');
 }
