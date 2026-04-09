@@ -102,4 +102,20 @@ describe('logger', () => {
             process.env.LOG_LEVEL = original;
         }
     });
+
+    it('printf handler formats a log line as "timestamp - level - message"', async () => {
+        await loadLogger();
+
+        // printf receives the format function and (in our mock) returns it as-is
+        const formatFn = mocks.printf.mock.calls[0]?.[0] as (info: {
+            level: string;
+            message: string;
+            timestamp: string;
+        }) => string;
+
+        expect(typeof formatFn).toBe('function');
+
+        const result = formatFn({ level: 'info', message: 'hello', timestamp: '2025-01-01' });
+        expect(result).toBe('2025-01-01 - info - hello');
+    });
 });

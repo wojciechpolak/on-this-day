@@ -172,4 +172,134 @@ describe('fetch-ics.get', () => {
         expect(mocks.readFile).not.toHaveBeenCalled();
         expect(mocks.remoteFetch).not.toHaveBeenCalled();
     });
+
+    it('parses and returns cached events when no raw param is given', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appIcsUrls: './fixtures/local.ics',
+            appCacheTtl: 60,
+        });
+        mocks.getQuery.mockReturnValue({});
+        mocks.cache.has.mockReturnValue(true);
+        mocks.cache.get.mockReturnValue(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20250319T000000Z',
+                'DTEND:20250319T000000Z',
+                'SUMMARY:CachedEvent',
+                'DESCRIPTION:From cache',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        const result = await handler(event);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].SUMMARY).toBe('CachedEvent');
+        expect(mocks.readFile).not.toHaveBeenCalled();
+        expect(mocks.remoteFetch).not.toHaveBeenCalled();
+    });
+
+    it('returns raw ICS after a fresh fetch when raw param is set', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appIcsUrls: 'https://example.com/remote.ics',
+            appCacheTtl: 60,
+        });
+        mocks.getQuery.mockReturnValue({ raw: '1' });
+        mocks.cache.has.mockReturnValue(false);
+        mocks.remoteFetch.mockResolvedValue(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20250319T000000Z',
+                'DTEND:20250319T000000Z',
+                'SUMMARY:FreshRaw',
+                'DESCRIPTION:Fresh',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await handler(event);
+
+        expect(event.node.res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/calendar');
+        expect(event.node.res.end).toHaveBeenCalledWith(
+            expect.stringContaining('SUMMARY:FreshRaw'),
+        );
+    });
+
+    it('falls back to 86400s TTL when appCacheTtl is not configured', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appIcsUrls: 'https://example.com/remote.ics',
+            appCacheTtl: 0, // falsy → should fall back to 86400
+        });
+        mocks.getQuery.mockReturnValue({});
+        mocks.cache.has.mockReturnValue(false);
+        mocks.remoteFetch.mockResolvedValue('BEGIN:VCALENDAR\nEND:VCALENDAR');
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await handler(event);
+
+        expect(mocks.setResponseHeader).toHaveBeenCalledWith(
+            event,
+            'Cache-Control',
+            'max-age=86400',
+        );
+        expect(mocks.cache.set).toHaveBeenCalledWith(expect.any(String), expect.any(String), 86400);
+    });
+
+    it('throws when APP_ICS_URLS is not configured', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appIcsUrls: '',
+            appCacheTtl: 60,
+        });
+        mocks.getQuery.mockReturnValue({});
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await expect(handler(event)).rejects.toThrow();
+        expect(mocks.logger.error).toHaveBeenCalled();
+    });
+
+    it('throws and logs on fetch error', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appIcsUrls: 'https://example.com/remote.ics',
+            appCacheTtl: 60,
+        });
+        mocks.getQuery.mockReturnValue({});
+        mocks.cache.has.mockReturnValue(false);
+        mocks.remoteFetch.mockRejectedValue(new Error('Network error'));
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await expect(handler(event)).rejects.toThrow();
+        expect(mocks.logger.error).toHaveBeenCalled();
+    });
+
+    it('uses the fallback error message when catch receives a falsy error', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appIcsUrls: 'https://example.com/remote.ics',
+            appCacheTtl: 60,
+        });
+        mocks.getQuery.mockReturnValue({});
+        mocks.cache.has.mockReturnValue(false);
+        // Reject with null (falsy) → triggers `error || 'Error fetching ICS data'`
+        mocks.remoteFetch.mockRejectedValue(null);
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await expect(handler(event)).rejects.toThrow('Error fetching ICS data');
+    });
 });

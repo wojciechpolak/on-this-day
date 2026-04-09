@@ -31,6 +31,16 @@ describe('getSectionTitles', () => {
         ]);
         expect(getSectionTitles('xx')).toEqual(['Events', 'Births', 'Deaths']);
     });
+
+    it('returns correct titles for es, de, and fr', () => {
+        expect(getSectionTitles('es')).toEqual([
+            'Acontecimientos',
+            'Nacimientos',
+            'Fallecimientos',
+        ]);
+        expect(getSectionTitles('de')).toEqual(['Ereignisse', 'Geboren', 'Gestorben']);
+        expect(getSectionTitles('fr')).toEqual(['Événements', 'Naissances', 'Décès']);
+    });
 });
 
 describe('createDate', () => {
@@ -81,5 +91,27 @@ describe('extractEventsFromContent', () => {
 
         expect(events).toHaveLength(1);
         expect(events[0]?.text).toBe('2001: Example');
+    });
+
+    it('skips anchors without an href attribute', () => {
+        const events = extractEventsFromContent(
+            '<ul><li>2001 – <a>No href link</a> happened</li></ul>',
+            'January 1',
+            'en',
+        );
+
+        expect(events).toHaveLength(1);
+        expect(events[0]?.text).toBe('2001 – No href link happened');
+    });
+
+    it('builds a full wiki URL for bare relative hrefs', () => {
+        const events = extractEventsFromContent(
+            '<ul><li>1999 – <a href="Some_Page">Some page</a></li></ul>',
+            'January 1',
+            'en',
+        );
+
+        expect(events).toHaveLength(1);
+        expect(events[0]?.html).toContain('https://en.wikipedia.org/wiki/Some_Page');
     });
 });

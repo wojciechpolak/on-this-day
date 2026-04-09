@@ -175,4 +175,186 @@ describe('fetch-wikipedia.get', () => {
         expect(event.node.res.end).toHaveBeenCalledWith(expect.stringContaining('SUMMARY:Cached'));
         expect(mocks.wiki2ics).not.toHaveBeenCalled();
     });
+
+    it('parses and returns cached events when no raw param is given', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 120,
+            appWikipediaSections: 'Events',
+            appWikipediaLangEnforce: false,
+            appWikipediaLang: 'en',
+        });
+        mocks.getQuery.mockReturnValue({ date: '2025-03-19', lang: 'en' });
+        mocks.cache.has.mockReturnValue(true);
+        mocks.cache.get.mockReturnValue(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20250319T000000Z',
+                'DTEND:20250319T000000Z',
+                'SUMMARY:CachedWiki',
+                'DESCRIPTION:Wiki cache',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        const result = await handler(event);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].SUMMARY).toBe('CachedWiki');
+        expect(mocks.wiki2ics).not.toHaveBeenCalled();
+    });
+
+    it('returns raw ICS after a fresh fetch when raw param is set', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 60,
+            appWikipediaSections: 'Events',
+            appWikipediaLangEnforce: false,
+            appWikipediaLang: 'en',
+        });
+        mocks.getQuery.mockReturnValue({ date: '2025-03-19', raw: '1', lang: 'en' });
+        mocks.cache.has.mockReturnValue(false);
+        mocks.wiki2ics.mockResolvedValue(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20250319T000000Z',
+                'DTEND:20250319T000000Z',
+                'SUMMARY:FreshWikiRaw',
+                'DESCRIPTION:Fresh',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await handler(event);
+
+        expect(event.node.res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/calendar');
+        expect(event.node.res.end).toHaveBeenCalledWith(
+            expect.stringContaining('SUMMARY:FreshWikiRaw'),
+        );
+    });
+
+    it('falls back to 86400s TTL when appCacheTtl is not configured', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 0, // falsy → fallback
+            appWikipediaSections: 'Events',
+            appWikipediaLangEnforce: false,
+            appWikipediaLang: 'en',
+        });
+        mocks.getQuery.mockReturnValue({ date: '2025-03-19', lang: 'en' });
+        mocks.cache.has.mockReturnValue(false);
+        mocks.wiki2ics.mockResolvedValue('BEGIN:VCALENDAR\nEND:VCALENDAR');
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await handler(event);
+
+        expect(mocks.setResponseHeader).toHaveBeenCalledWith(
+            event,
+            'Cache-Control',
+            'max-age=86400',
+        );
+        expect(mocks.cache.set).toHaveBeenCalledWith(expect.any(String), expect.any(String), 86400);
+    });
+
+    it('passes empty sectionTitles when appWikipediaSections is not set', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 60,
+            appWikipediaSections: '', // falsy → empty array passed to wiki2ics
+            appWikipediaLangEnforce: false,
+            appWikipediaLang: 'en',
+        });
+        mocks.getQuery.mockReturnValue({ date: '2025-03-19', lang: 'en' });
+        mocks.cache.has.mockReturnValue(false);
+        mocks.wiki2ics.mockResolvedValue('BEGIN:VCALENDAR\nEND:VCALENDAR');
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await handler(event);
+
+        expect(mocks.wiki2ics).toHaveBeenCalledWith('2025-03-19', [], 'en');
+    });
+
+    it('uses a date array element when date query param is an array', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 60,
+            appWikipediaSections: 'Events',
+            appWikipediaLangEnforce: false,
+            appWikipediaLang: 'en',
+        });
+        mocks.getQuery.mockReturnValue({ date: ['2025-03-19', '2025-03-20'], lang: 'en' });
+        mocks.cache.has.mockReturnValue(false);
+        mocks.wiki2ics.mockResolvedValue('BEGIN:VCALENDAR\nEND:VCALENDAR');
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await handler(event);
+
+        expect(mocks.wiki2ics).toHaveBeenCalledWith('2025-03-19', expect.any(Array), 'en');
+    });
+
+    it('throws and logs on wiki2ics error', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 60,
+            appWikipediaSections: 'Events',
+            appWikipediaLangEnforce: false,
+            appWikipediaLang: 'en',
+        });
+        mocks.getQuery.mockReturnValue({ date: '2025-03-19', lang: 'en' });
+        mocks.cache.has.mockReturnValue(false);
+        mocks.wiki2ics.mockRejectedValue(new Error('Wikipedia down'));
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await expect(handler(event)).rejects.toThrow();
+        expect(mocks.logger.error).toHaveBeenCalled();
+    });
+
+    it('uses fallback error message when catch receives a falsy error', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 60,
+            appWikipediaSections: 'Events',
+            appWikipediaLangEnforce: false,
+            appWikipediaLang: 'en',
+        });
+        mocks.getQuery.mockReturnValue({ date: '2025-03-19', lang: 'en' });
+        mocks.cache.has.mockReturnValue(false);
+        mocks.wiki2ics.mockRejectedValue(null);
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await expect(handler(event)).rejects.toThrow('Error fetching Wikipedia data');
+    });
+
+    it('falls back to empty date string and "en" lang when both are absent from query', async () => {
+        mocks.useRuntimeConfig.mockReturnValue({
+            appCacheTtl: 60,
+            appWikipediaSections: 'Events',
+            appWikipediaLangEnforce: false,
+            appWikipediaLang: 'en',
+        });
+        // date is undefined (not an array), lang is undefined → triggers ?? '' and || 'en'
+        mocks.getQuery.mockReturnValue({});
+        mocks.cache.has.mockReturnValue(false);
+        mocks.wiki2ics.mockResolvedValue('BEGIN:VCALENDAR\nEND:VCALENDAR');
+
+        const { default: handler } = await loadHandler();
+        const event = createEvent();
+
+        await handler(event);
+
+        expect(mocks.wiki2ics).toHaveBeenCalledWith('', expect.any(Array), 'en');
+    });
 });

@@ -137,10 +137,15 @@ weekStart.setUTCDate(today.getUTCDate() - today.getUTCDay());
 const personalDayStart = makeUtcDate(selectedYear - 14, selectedMonth, selectedDay, 10, 0, 0);
 const personalWeekStart = addUtcDays(weekStart, 2);
 personalWeekStart.setUTCFullYear(selectedYear - 10);
+// Pick a day that is in the same month but outside the current week.
+// weekStart.getUTCDate() is the day the week opens (Sunday). Using the day
+// just before it guarantees it won't pass isEventThisWeek. When the week
+// opens on the 1st we fall back to day 9 (always after the 7-day window).
+const personalMonthDay = weekStart.getUTCDate() > 1 ? weekStart.getUTCDate() - 1 : 9;
 const personalMonthStart = makeUtcDate(
     selectedYear - 12,
     selectedMonth,
-    Math.min(selectedDay, 5),
+    personalMonthDay,
     14,
     0,
     0,

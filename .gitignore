@@ -5,7 +5,8 @@
 .nitro
 .cache
 dist
-test-results
+coverage/
+test-results/
 /playwright-report
 /blob-report
 

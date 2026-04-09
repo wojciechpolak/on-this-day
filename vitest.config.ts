@@ -36,5 +36,11 @@ export default defineConfig({
         environment: 'happy-dom',
         include: ['src/**/*.{test,spec}.ts', 'src/**/*.{test,spec}.vue'],
         exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**', 'test-results/**'],
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'lcov', 'html'],
+            include: ['src/**/*.{ts,vue}'],
+            exclude: ['src/**/*.{test,spec}.{ts,vue}', 'src/test/**'],
+        },
     },
 });

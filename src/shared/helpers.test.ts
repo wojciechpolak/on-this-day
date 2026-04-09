@@ -51,6 +51,49 @@ describe('sortEvents', () => {
             'fallback',
         ]);
     });
+
+    it('falls back to DTEND when DTSTART is epoch (valueOf === 0)', () => {
+        const events: IcsEvent[] = [
+            {
+                DTSTART: new Date(0),
+                DTEND: new Date('2020-01-01T00:00:00.000Z'),
+                SUMMARY: 'epoch-start',
+                DESCRIPTION: '',
+            },
+            {
+                DTSTART: new Date('2019-01-01T00:00:00.000Z'),
+                DTEND: new Date('2019-01-01T01:00:00.000Z'),
+                SUMMARY: 'regular',
+                DESCRIPTION: '',
+            },
+        ];
+
+        // epoch-start has DTSTART=0 (falsy), so DTEND=2020 is used; regular has DTSTART=2019
+        expect([...events].sort(sortEvents).map((e) => e.SUMMARY)).toEqual([
+            'epoch-start',
+            'regular',
+        ]);
+    });
+
+    it('falls back to DTEND on the a-side when a.DTSTART is epoch', () => {
+        const events: IcsEvent[] = [
+            {
+                DTSTART: new Date('2021-06-01T00:00:00.000Z'),
+                DTEND: new Date('2021-06-01T01:00:00.000Z'),
+                SUMMARY: 'normal',
+                DESCRIPTION: '',
+            },
+            {
+                DTSTART: new Date(0),
+                DTEND: new Date('2018-01-01T00:00:00.000Z'),
+                SUMMARY: 'a-epoch',
+                DESCRIPTION: '',
+            },
+        ];
+
+        // normal: DTSTART=2021; a-epoch: DTSTART=0 → falls back to DTEND=2018
+        expect([...events].sort(sortEvents).map((e) => e.SUMMARY)).toEqual(['normal', 'a-epoch']);
+    });
 });
 
 describe('parseInputText', () => {

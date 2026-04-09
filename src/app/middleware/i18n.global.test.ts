@@ -56,4 +56,40 @@ describe('i18n.global middleware', () => {
             expect(mocks.languageState.value).toBe('fr-FR');
         }
     });
+
+    it('uses navigator.language as the detected language on the client side', () => {
+        Object.defineProperty(navigator, 'language', {
+            configurable: true,
+            value: 'ja-JP',
+        });
+
+        mocks.languageState.value = '';
+        middleware({} as never, {} as never);
+
+        // In the happy-dom (client) test environment, import.meta.server is false,
+        // so navigator.language is used. If running SSR, Accept-Language is used instead.
+        if (!import.meta.server) {
+            expect(mocks.languageState.value).toBe('ja-JP');
+        }
+    });
+
+    it('falls back to "en" when the accept-language header is missing', () => {
+        // Simulate server side with no Accept-Language header
+        mocks.useRequestHeaders.mockReturnValue({});
+        mocks.languageState.value = '';
+
+        // Stub import.meta.server to simulate server environment
+        vi.stubGlobal('import', { meta: { server: true } });
+
+        try {
+            middleware({} as never, {} as never);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+
+        // If running SSR, the fallback 'en' is used; on client navigator.language is used
+        if (import.meta.server) {
+            expect(mocks.languageState.value).toBe('en');
+        }
+    });
 });

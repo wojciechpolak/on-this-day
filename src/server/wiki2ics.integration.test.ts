@@ -61,6 +61,50 @@ afterEach(() => {
 });
 
 describe('wiki2ics', () => {
+    it('formats the date using locale string for pl/es/de/fr languages', async () => {
+        mocks.fetch
+            .mockResolvedValueOnce({
+                parse: {
+                    pageid: 1,
+                    sections: [
+                        {
+                            anchor: 'Events',
+                            byteoffset: 0,
+                            fromtitle: '19 marca',
+                            index: '1',
+                            level: '2',
+                            line: 'Wydarzenia w Polsce',
+                            linkAnchor: 'Events',
+                            number: '1',
+                            toclevel: 2,
+                        },
+                    ],
+                    showtoc: '',
+                    text: { '*': '' },
+                    title: '19 marca',
+                },
+            })
+            .mockResolvedValueOnce({
+                parse: {
+                    pageid: 1,
+                    sections: [],
+                    showtoc: '',
+                    text: {
+                        '*': '<ul><li>2001 – <a href="/wiki/Foo">Zdarzenie</a></li></ul>',
+                    },
+                    title: '19 marca',
+                },
+            });
+
+        const { default: wiki2ics } = await loadWiki2ics();
+        const result = await wiki2ics('2025-03-19', ['Wydarzenia w Polsce'], 'pl');
+
+        expect(result).toBe('ICS-DATA');
+        // Verify the Wikipedia API was called with the Polish date string
+        const firstCallUrl = (mocks.fetch.mock.calls[0] as [string])[0];
+        expect(firstCallUrl).toContain('pl.wikipedia.org');
+    });
+
     it('rejects invalid ISO dates', async () => {
         const { default: wiki2ics } = await loadWiki2ics();
 
@@ -123,6 +167,143 @@ describe('wiki2ics', () => {
                 }),
             }),
         );
+    });
+
+    it('returns empty string and logs error when sections API returns an error', async () => {
+        mocks.fetch.mockResolvedValueOnce({
+            error: {
+                code: 'nosuchpage',
+                info: 'The page you specified does not exist.',
+                '*': '',
+            },
+            parse: {
+                pageid: 0,
+                sections: [],
+                showtoc: '',
+                text: { '*': '' },
+                title: '',
+            },
+        });
+
+        const { default: wiki2ics } = await loadWiki2ics();
+        const result = await wiki2ics('2025-03-19', ['Events'], 'en');
+
+        expect(result).toBe('');
+        expect(mocks.logger.error).toHaveBeenCalledWith(
+            expect.stringContaining('The page you specified does not exist.'),
+        );
+        expect(mocks.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to getSectionTitles when sectionTitles array is empty', async () => {
+        // sections fetch returns default English titles in section.line
+        mocks.fetch
+            .mockResolvedValueOnce({
+                parse: {
+                    pageid: 1,
+                    sections: [
+                        {
+                            anchor: 'Events',
+                            byteoffset: 0,
+                            fromtitle: 'March 19',
+                            index: '1',
+                            level: '2',
+                            line: 'Events',
+                            linkAnchor: 'Events',
+                            number: '1',
+                            toclevel: 2,
+                        },
+                    ],
+                    showtoc: '',
+                    text: { '*': '' },
+                    title: 'March 19',
+                },
+            })
+            .mockResolvedValueOnce({
+                parse: {
+                    pageid: 1,
+                    sections: [],
+                    showtoc: '',
+                    text: {
+                        '*': '<ul><li>2001 – <a href="/wiki/Foo">Foo</a></li></ul>',
+                    },
+                    title: 'March 19',
+                },
+            });
+
+        const { default: wiki2ics } = await loadWiki2ics();
+        // pass empty sectionTitles → should fall back to getSectionTitles('en')
+        const result = await wiki2ics('2025-03-19', [], 'en');
+
+        expect(result).toBe('ICS-DATA');
+        expect(mocks.createEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses the current date when dateParam is empty', async () => {
+        mocks.fetch.mockResolvedValueOnce({
+            parse: {
+                pageid: 1,
+                sections: [],
+                showtoc: '',
+                text: { '*': '' },
+                title: 'Some Date',
+            },
+        });
+
+        const { default: wiki2ics } = await loadWiki2ics();
+        const result = await wiki2ics('', [], 'en');
+
+        expect(result).toBe('');
+        expect(mocks.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('logs and skips a section when getSectionContent returns an API error', async () => {
+        mocks.fetch
+            .mockResolvedValueOnce({
+                // First call: sections response — Events section found
+                parse: {
+                    pageid: 1,
+                    sections: [
+                        {
+                            anchor: 'Events',
+                            byteoffset: 0,
+                            fromtitle: 'March 19',
+                            index: '1',
+                            level: '2',
+                            line: 'Events',
+                            linkAnchor: 'Events',
+                            number: '1',
+                            toclevel: 2,
+                        },
+                    ],
+                    showtoc: '',
+                    text: { '*': '' },
+                    title: 'March 19',
+                },
+            })
+            .mockResolvedValueOnce({
+                // Second call: section content returns an API error
+                error: {
+                    code: 'missingtitle',
+                    info: 'The page you specified does not exist.',
+                    '*': '',
+                },
+                parse: {
+                    pageid: 0,
+                    sections: [],
+                    showtoc: '',
+                    text: { '*': '' },
+                    title: '',
+                },
+            });
+
+        const { default: wiki2ics } = await loadWiki2ics();
+        const result = await wiki2ics('2025-03-19', ['Events'], 'en');
+
+        // Content fetch errored → no events → empty calendar string (still valid ICS)
+        expect(mocks.logger.error).toHaveBeenCalled();
+        expect(mocks.createEvent).not.toHaveBeenCalled();
+        expect(result).toBe('ICS-DATA');
     });
 
     it('returns an empty string when no matching wikipedia sections are found', async () => {

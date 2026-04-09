@@ -112,6 +112,42 @@ describe('ICalParser', () => {
         expect(event?.DESCRIPTION).toBe('Sample Person');
     });
 
+    it('decodes hex and decimal numeric HTML entities', () => {
+        const parser = new ICalParser('');
+
+        expect(parser.decodeHtmlEntities('&#x41;&#x42;&#x43;')).toBe('ABC');
+        expect(parser.decodeHtmlEntities('&#65;&#66;&#67;')).toBe('ABC');
+        expect(parser.decodeHtmlEntities('&#x1F600;')).toBe('😀');
+        // Unknown named entity is returned unchanged
+        expect(parser.decodeHtmlEntities('&zwnj;')).toBe('&zwnj;');
+    });
+
+    it('returns undefined for an empty date string', () => {
+        const parser = new ICalParser('');
+        expect(parser.parseDate('')).toBeUndefined();
+    });
+
+    it('parses DESCRIPTION with FMTTYPE=text/html and marks it as HTML', () => {
+        const parser = new ICalParser(
+            [
+                'BEGIN:VCALENDAR',
+                'BEGIN:VEVENT',
+                'DTSTART:20250319T081530Z',
+                'DTEND:20250319T091530Z',
+                'SUMMARY:HTML event',
+                'DESCRIPTION;FMTTYPE=text/html:<b>Bold description</b>',
+                'END:VEVENT',
+                'END:VCALENDAR',
+            ].join('\n'),
+        );
+
+        const [event] = parser.getEvents();
+
+        // normalizeTextField strips HTML tags from DESCRIPTION
+        expect(event?.DESCRIPTION).toBe('Bold description');
+        expect(event?.DESCRIPTION_VALUE).toBe('HTML');
+    });
+
     it('decodes HTML entities inside folded DESCRIPTION links', () => {
         const parser = new ICalParser(
             [
