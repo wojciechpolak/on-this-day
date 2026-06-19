@@ -36,7 +36,7 @@
     "ical-generator": "^10.1.0",
     "luxon": "^3.7.2",
     "node-cache": "^5.1.2",
-    "nuxt": "^4.4.2",
+    "nuxt": "^4.4.6",
     "vue": "^3.5.31",
     "vue-router": "^5.0.4",
     "winston": "^3.19.0"
