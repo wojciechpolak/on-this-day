@@ -19,13 +19,16 @@
 
 import { spawn } from 'node:child_process';
 import http from 'node:http';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = path.dirname(fileURLToPath(new URL('../package.json', import.meta.url)));
 const nuxtCli = path.join(rootDir, 'node_modules/nuxt/bin/nuxt.mjs');
 const defaultVrtFixedDate = '2026-03-21T12:00:00.000Z';
+const e2eTmpDir =
+    process.env.OTD_E2E_TMPDIR ||
+    (process.platform === 'darwin' ? '/tmp' : process.env.TMPDIR || '/tmp');
 
 function resolveVrtFixedDate(value) {
     if (value) {
@@ -203,7 +206,9 @@ const cal2 = buildCalendar([
     }),
 ]);
 
-const cal2TempPath = path.join(process.env.TMPDIR || '/tmp', 'otd-e2e-cal2.ics');
+await mkdir(e2eTmpDir, { recursive: true });
+
+const cal2TempPath = path.join(e2eTmpDir, 'otd-e2e-cal2.ics');
 await writeFile(cal2TempPath, cal2, 'utf8');
 
 function delay(ms) {
@@ -254,6 +259,9 @@ const env = {
     APP_ICS_URLS: `http://127.0.0.1:${mockPort}/cal1.ics,${cal2TempPath}`,
     APP_WIKIPEDIA_LANG: 'en',
     APP_WIKIPEDIA_SECTIONS: 'Events,Births',
+    TMPDIR: e2eTmpDir,
+    TMP: e2eTmpDir,
+    TEMP: e2eTmpDir,
     NITRO_HOST: '127.0.0.1',
     NITRO_PORT: '4173',
     PORT: '4173',
