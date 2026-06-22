@@ -20,7 +20,11 @@
 import { resolveVrtFixedDate } from '../../src/shared/vrt-now';
 
 export function getCurrentDate(): Date {
-    return process.env.VRT === '1'
-        ? new Date(resolveVrtFixedDate(process.env.VRT_FIXED_DATE))
-        : new Date();
+    if (process.env.OTD_E2E_REAL_DATE === '1') {
+        return new Date();
+    }
+
+    return new Date(
+        resolveVrtFixedDate(process.env.OTD_E2E_FIXED_DATE || process.env.VRT_FIXED_DATE),
+    );
 }

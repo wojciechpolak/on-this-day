@@ -26,6 +26,10 @@ import { fileURLToPath } from 'node:url';
 const rootDir = path.dirname(fileURLToPath(new URL('../package.json', import.meta.url)));
 const nuxtCli = path.join(rootDir, 'node_modules/nuxt/bin/nuxt.mjs');
 const defaultVrtFixedDate = '2026-03-21T12:00:00.000Z';
+const e2eFixedDate = resolveVrtFixedDate(
+    process.env.OTD_E2E_FIXED_DATE || process.env.VRT_FIXED_DATE,
+);
+const useRealDate = process.env.OTD_E2E_REAL_DATE === '1';
 const e2eTmpDir =
     process.env.OTD_E2E_TMPDIR ||
     (process.platform === 'darwin' ? '/tmp' : process.env.TMPDIR || '/tmp');
@@ -42,10 +46,8 @@ function resolveVrtFixedDate(value) {
 }
 
 function utcNow() {
-    const fixedVrtNow =
-        process.env.VRT === '1' ? resolveVrtFixedDate(process.env.VRT_FIXED_DATE) : '';
-    if (fixedVrtNow) {
-        const fixedDate = new Date(fixedVrtNow);
+    if (!useRealDate) {
+        const fixedDate = new Date(e2eFixedDate);
         if (!Number.isNaN(fixedDate.getTime())) {
             return fixedDate;
         }
@@ -256,6 +258,7 @@ const mockPort = await new Promise((resolve, reject) => {
 const env = {
     ...process.env,
     HOST: '127.0.0.1',
+    VRT_FIXED_DATE: e2eFixedDate,
     APP_ICS_URLS: `http://127.0.0.1:${mockPort}/cal1.ics,${cal2TempPath}`,
     APP_WIKIPEDIA_LANG: 'en',
     APP_WIKIPEDIA_SECTIONS: 'Events,Births',
@@ -266,6 +269,10 @@ const env = {
     NITRO_PORT: '4173',
     PORT: '4173',
 };
+
+if (!useRealDate) {
+    env.VRT = '1';
+}
 
 const nuxt = spawn(process.execPath, [nuxtCli, 'dev'], {
     cwd: rootDir,
