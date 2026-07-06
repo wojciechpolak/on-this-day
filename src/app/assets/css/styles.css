@@ -34,6 +34,9 @@
     --color-event-shadow: color-mix(in oklch, var(--theme-ink) 8%, transparent);
     --color-event-border: color-mix(in oklch, var(--theme-ink) 14%, var(--theme-surface));
     --color-event-date: color-mix(in oklch, var(--color-muted) 74%, white);
+    --color-error-bg: color-mix(in oklch, #f7d7cc 34%, var(--color-event-background));
+    --color-error-border: color-mix(in oklch, #b84f35 38%, var(--color-event-border));
+    --color-error-text: color-mix(in oklch, #7d2c1e 72%, var(--color-text));
     --color-tabs-border: color-mix(in oklch, var(--theme-ink) 12%, var(--theme-surface));
     --color-button-bg: color-mix(in oklch, var(--color-panel-strong) 96%, white);
     --color-button-text: var(--color-text);
@@ -74,6 +77,9 @@
         --color-event-shadow: color-mix(in oklch, black 32%, transparent);
         --color-event-border: color-mix(in oklch, var(--theme-ink) 24%, var(--theme-surface));
         --color-event-date: color-mix(in oklch, var(--theme-ink) 68%, black);
+        --color-error-bg: color-mix(in oklch, #8f3827 28%, var(--color-event-background));
+        --color-error-border: color-mix(in oklch, #e18a72 42%, var(--color-event-border));
+        --color-error-text: color-mix(in oklch, #ffd8cd 72%, var(--color-text));
         --color-tabs-border: color-mix(in oklch, var(--theme-ink) 24%, var(--theme-surface));
         --color-button-bg: color-mix(in oklch, var(--theme-surface) 82%, white 18%);
         --color-button-text: var(--color-text);
@@ -493,6 +499,7 @@ nav.date .button {
 
 .event,
 .loading,
+.source-error,
 .no-events-message {
     background: var(--color-event-background);
     border: 1px solid var(--color-event-border);
@@ -502,11 +509,65 @@ nav.date .button {
 }
 
 .loading,
+.source-error,
 .no-events-message {
     color: var(--color-muted);
     margin-top: 0;
     padding: 1rem;
     text-align: center;
+}
+
+.loading {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.55rem;
+    justify-content: center;
+    min-height: 3.65rem;
+}
+
+.loading-text {
+    font-weight: 650;
+}
+
+.loading-dots {
+    display: inline-flex;
+    gap: 0.25rem;
+}
+
+.loading-dots span {
+    animation: loading-dot-bounce 900ms ease-in-out infinite;
+    background: currentColor;
+    border-radius: 999px;
+    height: 0.42rem;
+    opacity: 0.5;
+    width: 0.42rem;
+}
+
+.loading-dots span:nth-child(2) {
+    animation-delay: 120ms;
+}
+
+.loading-dots span:nth-child(3) {
+    animation-delay: 240ms;
+}
+
+.source-error {
+    background: var(--color-error-bg);
+    border-color: var(--color-error-border);
+    color: var(--color-error-text);
+    display: grid;
+    gap: 0.35rem;
+    justify-items: center;
+    line-height: 1.45;
+}
+
+.source-error strong {
+    color: var(--color-text);
+    font-size: 1rem;
+}
+
+.source-error span {
+    max-width: 34rem;
 }
 
 .event {
@@ -515,6 +576,7 @@ nav.date .button {
 }
 
 .event-stack-fade-enter-active .event,
+.event-stack-fade-enter-active .source-error,
 .event-stack-fade-enter-active .no-events-message {
     animation: event-fade 140ms ease both;
     animation-delay: calc(var(--stagger-index, 0) * 16ms + 20ms);
@@ -613,6 +675,20 @@ nav.date .button {
     }
 }
 
+@keyframes loading-dot-bounce {
+    0%,
+    80%,
+    100% {
+        opacity: 0.42;
+        transform: translateY(0) scale(0.86);
+    }
+
+    40% {
+        opacity: 1;
+        transform: translateY(-0.18rem) scale(1);
+    }
+}
+
 button:focus-visible,
 input:focus-visible + span,
 .tab:focus-visible {
@@ -626,9 +702,14 @@ input:focus-visible + span,
     .event-stack-fade-enter-active,
     .event-stack-fade-leave-active,
     .event-stack-fade-enter-active .event,
+    .event-stack-fade-enter-active .source-error,
     .event-stack-fade-enter-active .no-events-message {
         animation: none !important;
         transition: none !important;
+    }
+
+    .loading-dots span {
+        animation: none !important;
     }
 }
 
@@ -641,6 +722,7 @@ input:focus-visible + span,
     }
 
     .event-stack-fade-enter-active .event,
+    .event-stack-fade-enter-active .source-error,
     .event-stack-fade-enter-active .no-events-message {
         animation: none !important;
     }

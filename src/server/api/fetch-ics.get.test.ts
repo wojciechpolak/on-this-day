@@ -23,7 +23,17 @@ const mocks = vi.hoisted(() => ({
     useRuntimeConfig: vi.fn(),
     getQuery: vi.fn(),
     setResponseHeader: vi.fn(),
-    createError: vi.fn((message: unknown) => new Error(String(message))),
+    createError: vi.fn((error: unknown) => {
+        if (error instanceof Error) {
+            return error;
+        }
+
+        if (typeof error === 'object' && error && 'message' in error) {
+            return new Error(String(error.message));
+        }
+
+        return new Error(String(error));
+    }),
     cache: {
         has: vi.fn(),
         get: vi.fn(),
@@ -294,12 +304,14 @@ describe('fetch-ics.get', () => {
         });
         mocks.getQuery.mockReturnValue({});
         mocks.cache.has.mockReturnValue(false);
-        // Reject with null (falsy) → triggers `error || 'Error fetching ICS data'`
+        // Reject with null (falsy) still returns a user-facing unavailable message.
         mocks.remoteFetch.mockRejectedValue(null);
 
         const { default: handler } = await loadHandler();
         const event = createEvent();
 
-        await expect(handler(event)).rejects.toThrow('Error fetching ICS data');
+        await expect(handler(event)).rejects.toThrow(
+            'Personal calendar source is unavailable right now. Try again later.',
+        );
     });
 });

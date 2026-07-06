@@ -34,9 +34,13 @@ export default defineEventHandler(async (event) => {
     const cacheTtl = config.appCacheTtl || 86400;
 
     if (!icsUrlsEnv) {
-        const msg = 'Env APP_ICS_URLS not specified';
+        const msg = 'Personal calendar source is not configured yet.';
         logger.error(msg);
-        throw createError(msg);
+        throw createError({
+            statusCode: 500,
+            statusMessage: 'Calendar source not configured',
+            message: msg,
+        });
     }
 
     setResponseHeader(event, 'Cache-Control', 'max-age=' + cacheTtl);
@@ -82,6 +86,10 @@ export default defineEventHandler(async (event) => {
         return parser.getEvents().sort(sortEvents);
     } catch (error) {
         logger.error(error);
-        throw createError(error || 'Error fetching ICS data');
+        throw createError({
+            statusCode: 502,
+            statusMessage: 'Calendar source unavailable',
+            message: 'Personal calendar source is unavailable right now. Try again later.',
+        });
     }
 });

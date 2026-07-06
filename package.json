@@ -6,9 +6,9 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
-    "start": "nuxt dev",
-    "dev:e2e": "nuxt dev --hostname 0.0.0.0 --port 4173",
+    "dev": "node scripts/nuxt-dev.mjs",
+    "start": "node scripts/nuxt-dev.mjs",
+    "dev:e2e": "node scripts/nuxt-dev.mjs --hostname 0.0.0.0 --port 4173",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",

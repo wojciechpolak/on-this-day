@@ -479,8 +479,9 @@ describe('pages/index.vue', () => {
 
         const wrapper = await mountPage();
 
-        const errorEl = wrapper.find('#tab-personal .no-events-message');
+        const errorEl = wrapper.find('#tab-personal .source-error');
         expect(errorEl.exists()).toBe(true);
+        expect(errorEl.text()).toContain('Calendar unavailable');
         expect(errorEl.text()).toContain('Custom Error');
     });
 
@@ -492,9 +493,20 @@ describe('pages/index.vue', () => {
 
         const wrapper = await mountPage();
 
-        const errorEl = wrapper.find('#tab-personal .no-events-message');
+        const errorEl = wrapper.find('#tab-personal .source-error');
         expect(errorEl.exists()).toBe(true);
         expect(errorEl.text()).toContain('Fallback Error Message');
+    });
+
+    it('shows a friendly message when the ICS source is not configured', async () => {
+        icsError.value = { data: { message: 'Env APP_ICS_URLS not specified' } };
+
+        const wrapper = await mountPage();
+
+        const errorEl = wrapper.find('#tab-personal .source-error');
+        expect(errorEl.exists()).toBe(true);
+        expect(errorEl.text()).toContain('Personal calendar source is not configured yet.');
+        expect(errorEl.text()).not.toContain('APP_ICS_URLS');
     });
 
     // -----------------------------------------------------------------------
@@ -614,6 +626,21 @@ describe('pages/index.vue', () => {
         await nextTick();
 
         expect(wrapper.find('.loading').exists()).toBe(false);
+
+        vi.useRealTimers();
+    });
+
+    it('shows animated loading dots after the loading delay', async () => {
+        vi.useFakeTimers();
+        icsStatus.value = 'pending';
+
+        const wrapper = await mountPage();
+
+        vi.advanceTimersByTime(210);
+        await nextTick();
+
+        expect(wrapper.find('.loading').text()).toContain('Loading...');
+        expect(wrapper.findAll('.loading-dots span')).toHaveLength(3);
 
         vi.useRealTimers();
     });

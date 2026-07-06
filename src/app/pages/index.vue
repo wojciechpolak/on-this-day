@@ -142,11 +142,50 @@ watch(
     { immediate: true },
 );
 
-type CustomError = Error & { data: { message: string } };
+type ErrorData = {
+    message?: unknown;
+    statusMessage?: unknown;
+};
+
+type CustomError = {
+    data?: ErrorData;
+    message?: unknown;
+    statusMessage?: unknown;
+};
+
+function getErrorText(error: unknown, fallback: string) {
+    if (!error) {
+        return fallback;
+    }
+
+    if (typeof error === 'string') {
+        return error;
+    }
+
+    if (typeof error !== 'object') {
+        return fallback;
+    }
+
+    const err = error as CustomError;
+    const message =
+        err.data?.message || err.data?.statusMessage || err.message || err.statusMessage;
+    return typeof message === 'string' && message.trim() ? message : fallback;
+}
+
+function normalizeIcsErrorMessage(message: string) {
+    if (/APP_ICS_URLS|not specified|not configured/i.test(message)) {
+        return 'Personal calendar source is not configured yet.';
+    }
+
+    if (/fetch failed|failed to fetch|network|ECONNREFUSED|ENOTFOUND|ENOENT/i.test(message)) {
+        return 'Personal calendar source is unavailable right now. Try again later.';
+    }
+
+    return message;
+}
 
 const getIcsErrorMessage = computed(() => {
-    const err = icsError.value as CustomError;
-    return err.data?.message || err.message || 'Connection Error';
+    return normalizeIcsErrorMessage(getErrorText(icsError.value, 'Connection Error'));
 });
 
 // ------------------------------
@@ -193,8 +232,7 @@ watch(
 );
 
 const getWikiErrorMessage = computed(() => {
-    const err = wikiError.value as CustomError;
-    return err.data?.message || err.message || 'Connection Error';
+    return getErrorText(wikiError.value, 'Connection Error');
 });
 
 // Re-fetch Wikipedia data when the user changes the date:
@@ -565,14 +603,21 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                         >
                             <Transition name="event-stack-fade" mode="out-in">
                                 <div v-if="showLoading" key="personal-loading" class="loading">
-                                    Loading...
+                                    <span class="loading-text">Loading...</span>
+                                    <span class="loading-dots" aria-hidden="true">
+                                        <span />
+                                        <span />
+                                        <span />
+                                    </span>
                                 </div>
                                 <div
                                     v-else-if="icsError"
                                     key="personal-error"
-                                    class="no-events-message"
+                                    class="source-error"
+                                    role="alert"
                                 >
-                                    {{ getIcsErrorMessage }}
+                                    <strong>Calendar unavailable</strong>
+                                    <span>{{ getIcsErrorMessage }}</span>
                                 </div>
                                 <div v-else :key="personalMotionContext" class="event-stack">
                                     <div
@@ -619,14 +664,21 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                                     key="history-loading"
                                     class="loading"
                                 >
-                                    Loading...
+                                    <span class="loading-text">Loading...</span>
+                                    <span class="loading-dots" aria-hidden="true">
+                                        <span />
+                                        <span />
+                                        <span />
+                                    </span>
                                 </div>
                                 <div
                                     v-else-if="wikiError"
                                     key="history-error"
-                                    class="no-events-message"
+                                    class="source-error"
+                                    role="alert"
                                 >
-                                    {{ getWikiErrorMessage }}
+                                    <strong>History unavailable</strong>
+                                    <span>{{ getWikiErrorMessage }}</span>
                                 </div>
                                 <div v-else :key="historyMotionContext" class="event-stack">
                                     <div
