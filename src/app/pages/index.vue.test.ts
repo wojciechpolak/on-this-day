@@ -639,7 +639,7 @@ describe('pages/index.vue', () => {
         vi.advanceTimersByTime(210);
         await nextTick();
 
-        expect(wrapper.find('.loading').text()).toContain('Loading...');
+        expect(wrapper.find('.loading').text()).toContain('Loading');
         expect(wrapper.findAll('.loading-dots span')).toHaveLength(3);
 
         vi.useRealTimers();

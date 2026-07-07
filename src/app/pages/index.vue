@@ -603,7 +603,7 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                         >
                             <Transition name="event-stack-fade" mode="out-in">
                                 <div v-if="showLoading" key="personal-loading" class="loading">
-                                    <span class="loading-text">Loading...</span>
+                                    <span class="loading-text">Loading</span>
                                     <span class="loading-dots" aria-hidden="true">
                                         <span />
                                         <span />
@@ -664,7 +664,7 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                                     key="history-loading"
                                     class="loading"
                                 >
-                                    <span class="loading-text">Loading...</span>
+                                    <span class="loading-text">Loading</span>
                                     <span class="loading-dots" aria-hidden="true">
                                         <span />
                                         <span />

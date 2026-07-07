@@ -492,6 +492,10 @@ nav.date .button {
     gap: 1rem;
 }
 
+.event-list > .loading {
+    display: flex;
+}
+
 #events-container,
 #history-container {
     width: 100%;
