@@ -19,57 +19,47 @@
 
 import { useRuntimeConfig } from '#imports';
 
-import ICalParser from '#shared/ics-parser';
 import cache from '../cache';
 import logger from '../logger';
 import wiki2ics from '../wiki2ics';
-import { sortEvents } from '#shared/helpers';
+import { respondWithIcs } from '../ics-response';
+
+/**
+ * Reads a single query parameter, taking the first entry when it is repeated.
+ */
+function firstQueryValue(value: unknown): string {
+    if (Array.isArray(value)) {
+        return <string>value[0] ?? '';
+    }
+    return <string>value ?? '';
+}
 
 export default defineEventHandler(async (event) => {
     const query = getQuery(event);
-    // 'YYYY-MM-DD'
-    const dateParam: string = Array.isArray(query.date) ? query.date[0] : (query.date ?? '');
-    let lang: string = <string>query.lang || 'en';
+    const dateParam: string = firstQueryValue(query.date); // 'YYYY-MM-DD'
 
     const config = useRuntimeConfig();
     const cacheTtl = config.appCacheTtl || 86400;
-    const enforceLang = config.appWikipediaLangEnforce;
-    const forcedLang = config.appWikipediaLang;
-
-    if (enforceLang) {
-        lang = forcedLang;
-    }
+    const lang: string = config.appWikipediaLangEnforce
+        ? config.appWikipediaLang
+        : firstQueryValue(query.lang) || 'en';
 
     setResponseHeader(event, 'Cache-Control', 'max-age=' + cacheTtl);
 
     try {
         const cacheKey = `wikipediaData-${lang}-${dateParam}`;
         if (cache.has(cacheKey)) {
-            const cachedData = cache.get(cacheKey) as string;
-            if (query.raw) {
-                event.node.res.setHeader('Content-Type', 'text/calendar');
-                return event.node.res.end(cachedData);
-            }
-            const parser = new ICalParser(cachedData);
-            return parser.getEvents().sort(sortEvents);
+            return respondWithIcs(event, query.raw, cache.get(cacheKey) as string);
         }
 
-        const wikipediaSections = config.appWikipediaSections; // e.g. 'Events,Births,Deaths'
-        let sectionTitles: string[] = [];
-        if (wikipediaSections) {
-            sectionTitles = wikipediaSections.split(',');
-        }
+        // e.g. 'Events,Births,Deaths'
+        const wikipediaSections: string | undefined = config.appWikipediaSections;
+        const sectionTitles = wikipediaSections ? wikipediaSections.split(',') : [];
 
         const wikiData = await wiki2ics(dateParam, sectionTitles, lang);
         cache.set(cacheKey, wikiData, cacheTtl);
 
-        if (query.raw) {
-            event.node.res.setHeader('Content-Type', 'text/calendar');
-            return event.node.res.end(wikiData);
-        }
-
-        const parser = new ICalParser(wikiData);
-        return parser.getEvents().sort(sortEvents);
+        return respondWithIcs(event, query.raw, wikiData);
     } catch (error) {
         logger.error(error);
         throw createError(error || 'Error fetching Wikipedia data');

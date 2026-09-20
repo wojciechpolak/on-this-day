@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { parseInputText } from '#shared/helpers';
+import EventList from '~/components/EventList.vue';
 import { useLanguage } from '~/composables/useLanguage';
 import { useCurrentDate } from '~/composables/useCurrentDate';
 import type { IcsEvent } from '#shared/ics-parser';
@@ -153,22 +153,23 @@ type CustomError = {
     statusMessage?: unknown;
 };
 
-function getErrorText(error: unknown, fallback: string) {
-    if (!error) {
-        return fallback;
-    }
+/**
+ * Picks the most specific message an error-like object carries.
+ */
+function pickErrorMessage(err: CustomError): unknown {
+    return err.data?.message || err.data?.statusMessage || err.message || err.statusMessage;
+}
 
+function getErrorText(error: unknown, fallback: string) {
     if (typeof error === 'string') {
         return error;
     }
 
-    if (typeof error !== 'object') {
+    if (!error || typeof error !== 'object') {
         return fallback;
     }
 
-    const err = error as CustomError;
-    const message =
-        err.data?.message || err.data?.statusMessage || err.message || err.statusMessage;
+    const message = pickErrorMessage(error as CustomError);
     return typeof message === 'string' && message.trim() ? message : fallback;
 }
 
@@ -186,6 +187,14 @@ function normalizeIcsErrorMessage(message: string) {
 
 const getIcsErrorMessage = computed(() => {
     return normalizeIcsErrorMessage(getErrorText(icsError.value, 'Connection Error'));
+});
+
+const showPersonalEmpty = computed(() => {
+    return (
+        icsStatus.value !== 'pending' &&
+        !showLoading.value &&
+        filteredPersonalEvents.value.length === 0
+    );
 });
 
 // ------------------------------
@@ -353,94 +362,6 @@ function resetDate() {
         refreshWiki();
     }
 }
-
-function renderEventHtml(event: IcsEvent): string {
-    const relDate = getRelativeTime(event.DTSTART || event.DTEND);
-    const summary = parseInputText(event.SUMMARY || '');
-    const description = event['X-ALT-DESC'] || parseInputText(event.DESCRIPTION || '');
-    const dateRange = formatEventDateRange(event.DTSTART, event.DTEND || event.DTSTART);
-
-    return `
-    <h2>
-      ${relDate ? `<span class="rel-date">${relDate}</span>` : ''}
-      <span class="title">${summary}</span>
-    </h2>
-    <p class="description">${description}</p>
-    <footer><time>${dateRange}</time></footer>
-  `;
-}
-
-function getEventKey(prefix: string, event: IcsEvent) {
-    const start = event.DTSTART?.toISOString() || 'no-start';
-    const end = event.DTEND?.toISOString() || 'no-end';
-    return `${prefix}-${start}-${end}-${event.SUMMARY || ''}`;
-}
-
-function getRelativeTime(eventDate: Date) {
-    const today: Date = useCurrentDate();
-    const timeDifference: number = eventDate.getTime() - today.getTime();
-    const secondsDifference = Math.round(timeDifference / 1000);
-    const rtf = new Intl.RelativeTimeFormat(userLang.value, { numeric: 'auto' });
-    const thresholds = [
-        { unit: 'second', threshold: 60 },
-        { unit: 'minute', threshold: 60 },
-        { unit: 'hour', threshold: 24 },
-        { unit: 'day', threshold: 30 },
-        { unit: 'month', threshold: 12 },
-        { unit: 'year', threshold: Number.POSITIVE_INFINITY },
-    ];
-    function _formatTimestamp(timestamp: number) {
-        let remainingTime = timestamp;
-        for (const { unit, threshold } of thresholds) {
-            if (Math.abs(remainingTime) < threshold) {
-                const value = Math.round(remainingTime);
-                return rtf.format(Math.round(value), unit as Intl.RelativeTimeFormatUnit);
-            }
-            remainingTime /= threshold;
-        }
-        return rtf.format(Math.round(remainingTime), 'year');
-    }
-    return _formatTimestamp(secondsDifference);
-}
-
-function formatEventDateRange(startDate: Date, endDate: Date): string {
-    if (!startDate) {
-        return '';
-    }
-    const dateOptions: Intl.DateTimeFormatOptions = {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    };
-
-    // If ICS indicates all-day event (end is midnight next day):
-    if (
-        endDate &&
-        endDate.getUTCHours() === 0 &&
-        endDate.getUTCMinutes() === 0 &&
-        endDate.getUTCSeconds() === 0
-    ) {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setUTCDate(endDate.getUTCDate() - 1);
-        if (startDate.toDateString() === adjustedEndDate.toDateString()) {
-            return startDate.toLocaleDateString(userLang.value, dateOptions);
-        }
-    }
-
-    // Single-day event
-    if (endDate && startDate.toDateString() === endDate.toDateString()) {
-        return startDate.toLocaleDateString(userLang.value, dateOptions);
-    }
-    // Multi-day
-    if (endDate) {
-        return `${startDate.toLocaleDateString(userLang.value, dateOptions)} – ${endDate.toLocaleDateString(
-            userLang.value,
-            dateOptions,
-        )}`;
-    }
-    return startDate.toLocaleDateString(userLang.value, dateOptions);
-}
 </script>
 
 <template>
@@ -595,53 +516,17 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                             </label>
                         </fieldset>
 
-                        <div
-                            id="events-container"
-                            class="event-list"
-                            aria-live="polite"
-                            aria-label="Personal Events"
-                        >
-                            <Transition name="event-stack-fade" mode="out-in">
-                                <div v-if="showLoading" key="personal-loading" class="loading">
-                                    <span class="loading-text">Loading</span>
-                                    <span class="loading-dots" aria-hidden="true">
-                                        <span />
-                                        <span />
-                                        <span />
-                                    </span>
-                                </div>
-                                <div
-                                    v-else-if="icsError"
-                                    key="personal-error"
-                                    class="source-error"
-                                    role="alert"
-                                >
-                                    <strong>Calendar unavailable</strong>
-                                    <span>{{ getIcsErrorMessage }}</span>
-                                </div>
-                                <div v-else :key="personalMotionContext" class="event-stack">
-                                    <div
-                                        v-if="
-                                            icsStatus !== 'pending' &&
-                                            !showLoading &&
-                                            filteredPersonalEvents.length === 0
-                                        "
-                                        class="no-events-message"
-                                    >
-                                        Nothing found. Looks like today is a quiet day in history.
-                                    </div>
-                                    <!-- oxlint-disable vue/no-v-html -->
-                                    <article
-                                        v-for="(event, idx) in filteredPersonalEvents"
-                                        :key="getEventKey('personal', event)"
-                                        :style="{ '--stagger-index': idx }"
-                                        class="event"
-                                        v-html="renderEventHtml(event)"
-                                    />
-                                    <!-- oxlint-enable -->
-                                </div>
-                            </Transition>
-                        </div>
+                        <EventList
+                            container-id="events-container"
+                            label="Personal Events"
+                            key-prefix="personal"
+                            :motion-key="personalMotionContext"
+                            :loading="showLoading"
+                            error-title="Calendar unavailable"
+                            :error-message="icsError ? getIcsErrorMessage : null"
+                            :show-empty="showPersonalEmpty"
+                            :events="filteredPersonalEvents"
+                        />
                     </div>
 
                     <div
@@ -652,53 +537,17 @@ function formatEventDateRange(startDate: Date, endDate: Date): string {
                         role="tabpanel"
                         aria-labelledby="tab-history-button"
                     >
-                        <div
-                            id="history-container"
-                            class="event-list"
-                            aria-live="polite"
-                            aria-label="Historical Events"
-                        >
-                            <Transition name="event-stack-fade" mode="out-in">
-                                <div
-                                    v-if="wikiStatus === 'pending'"
-                                    key="history-loading"
-                                    class="loading"
-                                >
-                                    <span class="loading-text">Loading</span>
-                                    <span class="loading-dots" aria-hidden="true">
-                                        <span />
-                                        <span />
-                                        <span />
-                                    </span>
-                                </div>
-                                <div
-                                    v-else-if="wikiError"
-                                    key="history-error"
-                                    class="source-error"
-                                    role="alert"
-                                >
-                                    <strong>History unavailable</strong>
-                                    <span>{{ getWikiErrorMessage }}</span>
-                                </div>
-                                <div v-else :key="historyMotionContext" class="event-stack">
-                                    <div
-                                        v-if="historyEvents.length === 0"
-                                        class="no-events-message"
-                                    >
-                                        Nothing found. Looks like today is a quiet day in history.
-                                    </div>
-                                    <!-- oxlint-disable vue/no-v-html -->
-                                    <article
-                                        v-for="(event, idx) in historyEvents"
-                                        :key="getEventKey('history', event)"
-                                        :style="{ '--stagger-index': idx }"
-                                        class="event"
-                                        v-html="renderEventHtml(event)"
-                                    />
-                                    <!-- oxlint-enable -->
-                                </div>
-                            </Transition>
-                        </div>
+                        <EventList
+                            container-id="history-container"
+                            label="Historical Events"
+                            key-prefix="history"
+                            :motion-key="historyMotionContext"
+                            :loading="wikiStatus === 'pending'"
+                            error-title="History unavailable"
+                            :error-message="wikiError ? getWikiErrorMessage : null"
+                            :show-empty="historyEvents.length === 0"
+                            :events="historyEvents"
+                        />
                     </div>
                 </Transition>
             </main>

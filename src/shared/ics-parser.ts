@@ -60,20 +60,10 @@ export default class ICalParser {
     }
 
     parseICal() {
-        // Split the lines and handle line continuations
-        const lines = this.icalData.split(/\r\n|\n|\r/).reduce((acc: string[], line) => {
-            if (line.startsWith(' ') || line.startsWith('\t')) {
-                acc[acc.length - 1] += line.slice(1);
-            } else {
-                acc.push(line);
-            }
-            return acc;
-        }, []);
-
         let event: IcsEvent;
         let insideAlarm = false;
 
-        lines.forEach((line) => {
+        this.unfoldLines().forEach((line) => {
             if (line.startsWith('BEGIN:VEVENT')) {
                 event = {} as IcsEvent;
             } else if (line.startsWith('END:VEVENT')) {
@@ -83,47 +73,104 @@ export default class ICalParser {
             } else if (line.startsWith('END:VALARM')) {
                 insideAlarm = false;
             } else if (event && !insideAlarm) {
-                const [key, ...valueParts] = line.split(':');
-                let value: Date | string | undefined = valueParts.join(':');
-                if (key && value) {
-                    if (key.includes(';VALUE=DATE') || key.includes(';TZID=')) {
-                        const dateKey = key.split(';')[0]!; // Extract the actual key (DTSTART or DTEND)
-                        if (dateKey === 'DTSTART' || dateKey === 'DTEND' || dateKey === 'DTSTAMP') {
-                            value = this.parseDate(value, false);
-                        }
-                        event[dateKey] = value;
-                        event[`${dateKey}_VALUE`] = 'DATE'; // Mark this as a DATE value
-                    } else if (key.includes(';VALUE=TEXT')) {
-                        const k = key.split(';')[0]!;
-                        event[k] = this.normalizeFieldValue(k, this.unescapeICalString(value));
-                        event[`${k}_VALUE`] = 'TEXT';
-                    } else if (key.includes(';FMTTYPE=text/html')) {
-                        const k = key.split(';')[0]!;
-                        event[k] = this.normalizeFieldValue(k, this.unescapeICalString(value));
-                        event[`${k}_VALUE`] = 'HTML';
-                    } else {
-                        if (key === 'DTSTART' || key === 'DTEND' || key === 'DTSTAMP') {
-                            value = this.parseDate(value.padStart(16, '0'));
-                        }
-                        if (value === undefined) {
-                            return;
-                        }
-                        const unescapedValue = this.unescapeICalString(value);
-                        if (
-                            typeof unescapedValue === 'string' &&
-                            unescapedValue.startsWith('<html-blob>')
-                        ) {
-                            event[key] = this.normalizeFieldValue(
-                                key,
-                                this.decodeHtmlBlob(unescapedValue),
-                            );
-                        } else {
-                            event[key] = this.normalizeFieldValue(key, unescapedValue);
-                        }
-                    }
-                }
+                this.assignProperty(event, line);
             }
         });
+    }
+
+    /**
+     * Splits the raw iCalendar payload into lines, joining RFC 5545 continuations.
+     * @returns {Array<string>}
+     */
+    unfoldLines(): string[] {
+        return this.icalData.split(/\r\n|\n|\r/).reduce((acc: string[], line) => {
+            if (line.startsWith(' ') || line.startsWith('\t')) {
+                acc[acc.length - 1] += line.slice(1);
+            } else {
+                acc.push(line);
+            }
+            return acc;
+        }, []);
+    }
+
+    /**
+     * Parses a single `KEY[;PARAMS]:VALUE` line onto the event being built.
+     * @param {IcsEvent} event
+     * @param {string} line
+     */
+    assignProperty(event: IcsEvent, line: string) {
+        const [key, ...valueParts] = line.split(':');
+        const value = valueParts.join(':');
+        if (!key || !value) {
+            return;
+        }
+
+        if (key.includes(';VALUE=DATE') || key.includes(';TZID=')) {
+            this.assignDateProperty(event, key, value);
+        } else if (key.includes(';VALUE=TEXT')) {
+            this.assignTextProperty(event, key, value, 'TEXT');
+        } else if (key.includes(';FMTTYPE=text/html')) {
+            this.assignTextProperty(event, key, value, 'HTML');
+        } else {
+            this.assignUntypedProperty(event, key, value);
+        }
+    }
+
+    /**
+     * Stores a property carrying an explicit DATE value or a time zone parameter.
+     * @param {IcsEvent} event
+     * @param {string} key - The raw key, including its parameters.
+     * @param {string} value
+     */
+    assignDateProperty(event: IcsEvent, key: string, value: string) {
+        // Extract the actual key (DTSTART or DTEND)
+        const dateKey = key.split(';')[0]!;
+        event[dateKey] = ICalParser.isDateKey(dateKey) ? this.parseDate(value, false) : value;
+        event[`${dateKey}_VALUE`] = 'DATE'; // Mark this as a DATE value
+    }
+
+    /**
+     * Stores a property whose parameters declare its value as TEXT or HTML.
+     * @param {IcsEvent} event
+     * @param {string} key - The raw key, including its parameters.
+     * @param {string} value
+     * @param {string} valueType
+     */
+    assignTextProperty(event: IcsEvent, key: string, value: string, valueType: 'TEXT' | 'HTML') {
+        const textKey = key.split(';')[0]!;
+        event[textKey] = this.normalizeFieldValue(textKey, this.unescapeICalString(value));
+        event[`${textKey}_VALUE`] = valueType;
+    }
+
+    /**
+     * Stores a property without value-type parameters, decoding HTML blobs on the way.
+     * @param {IcsEvent} event
+     * @param {string} key
+     * @param {string} value
+     */
+    assignUntypedProperty(event: IcsEvent, key: string, value: string) {
+        const parsed: Date | string | undefined = ICalParser.isDateKey(key)
+            ? this.parseDate(value.padStart(16, '0'))
+            : value;
+        if (parsed === undefined) {
+            return;
+        }
+
+        const unescaped = this.unescapeICalString(parsed);
+        const decoded =
+            typeof unescaped === 'string' && unescaped.startsWith('<html-blob>')
+                ? this.decodeHtmlBlob(unescaped)
+                : unescaped;
+        event[key] = this.normalizeFieldValue(key, decoded);
+    }
+
+    /**
+     * Tells whether a key holds an iCalendar date-time value.
+     * @param {string} key
+     * @returns {boolean}
+     */
+    static isDateKey(key: string): boolean {
+        return key === 'DTSTART' || key === 'DTEND' || key === 'DTSTAMP';
     }
 
     /**

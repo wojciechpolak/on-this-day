@@ -33,6 +33,7 @@
   "dependencies": {
     "@vite-pwa/nuxt": "^1.1.1",
     "cheerio": "^1.2.0",
+    "domhandler": "^5.0.3",
     "ical-generator": "^10.1.0",
     "luxon": "^3.7.2",
     "node-cache": "^5.1.2",
@@ -45,9 +46,9 @@
     "@nuxt/test-utils": "^4.0.0",
     "@playwright/test": "1.59.1",
     "@types/luxon": "^3.7.1",
+    "@vitejs/plugin-vue": "^6.0.9",
     "@vitest/coverage-v8": "^4.1.4",
     "@vue/test-utils": "^2.4.6",
-    "commander": "^14.0.3",
     "happy-dom": "^20.8.9",
     "oxfmt": "^0.67.0",
     "oxlint": "^1.57.0",

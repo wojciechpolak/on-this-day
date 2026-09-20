@@ -66,54 +66,47 @@ export interface WikiEvent {
 }
 
 /**
- * Fetches Wikipedia's On This Day events and converts them to ICS
+ * Resolves the requested date, falling back to the current local date.
  */
-async function wiki2ics(dateParam: string, sectionTitles: string[], lang = 'en'): Promise<string> {
-    // Parse the date parameter or use the current date
-    let dateObj;
-    if (dateParam) {
-        dateObj = DateTime.fromISO(dateParam, { zone: 'utc' });
-        if (!dateObj.isValid) {
-            throw new Error('Invalid date format. Please use ISO format (YYYY-MM-DD).');
-        }
-    } else {
-        dateObj = DateTime.local();
+function resolveDate(dateParam: string): DateTime {
+    if (!dateParam) {
+        return DateTime.local();
     }
+    const dateObj = DateTime.fromISO(dateParam, { zone: 'utc' });
+    if (!dateObj.isValid) {
+        throw new Error('Invalid date format. Please use ISO format (YYYY-MM-DD).');
+    }
+    return dateObj;
+}
 
-    sectionTitles = (sectionTitles.length && sectionTitles) || getSectionTitles(lang);
-    logger.debug('sectionTitles: %s', sectionTitles);
-
-    let dateStr;
-    // Format the date into the Wikipedia page title format, considering localization
+/**
+ * Formats the date into the Wikipedia page title format, considering localization.
+ */
+function formatWikiDate(dateObj: DateTime, lang: string): string {
     if (lang === 'pl' || lang === 'es' || lang === 'de' || lang === 'fr') {
-        dateStr = dateObj.setLocale(lang).toLocaleString({
+        // e.g. '1 lipca'
+        return dateObj.setLocale(lang).toLocaleString({
             day: 'numeric',
             month: 'long',
-        }); // e.g. '1 lipca'
-    } else {
-        const localizedMonth = dateObj.setLocale(lang).toFormat('LLLL'); // Full month name
-        const localizedDay = dateObj.setLocale(lang).toFormat('d'); // Day of the month
-        dateStr = `${localizedMonth} ${localizedDay}`; // e.g. 'October 21'
+        });
     }
+    const localizedMonth = dateObj.setLocale(lang).toFormat('LLLL'); // Full month name
+    const localizedDay = dateObj.setLocale(lang).toFormat('d'); // Day of the month
+    return `${localizedMonth} ${localizedDay}`; // e.g. 'October 21'
+}
 
-    // Get current date
-    const month = dateObj.month;
-    const day = dateObj.day;
-
-    logger.info(`Fetching Wikipedia events for ${dateStr} in language ${lang}`);
-
-    // Wikipedia API URLs
-    const apiUrl = `https://${lang}.wikipedia.org/w/api.php`;
-
-    // Fetch section indexes
-    const sectionIndexes = await getSectionIndexes(apiUrl, dateStr, sectionTitles);
-    if (Object.keys(sectionIndexes).length === 0) {
-        logger.error('Failed to retrieve section indexes.');
-        return '';
-    }
-
-    // Fetch and parse events
+/**
+ * Fetches and parses the events of every requested section.
+ */
+async function fetchSectionEvents(
+    apiUrl: string,
+    dateStr: string,
+    sectionTitles: string[],
+    sectionIndexes: Record<string, string>,
+    lang: string,
+): Promise<Record<string, WikiEvent[]>> {
     const allEvents: Record<string, WikiEvent[]> = {};
+
     for (const sectionTitle of sectionTitles) {
         if (!(sectionTitle in sectionIndexes)) {
             logger.info(`Section '${sectionTitle}' not found.`);
@@ -127,43 +120,48 @@ async function wiki2ics(dateParam: string, sectionTitles: string[], lang = 'en')
         allEvents[sectionTitle] = events;
     }
 
-    // Generate ICS data
+    return allEvents;
+}
+
+/**
+ * Splits an entry such as '1096 – Event description' into a year and a description.
+ * Entries without a year and BCE entries are rejected.
+ */
+function parseEventEntry(eventText: string, lang: string): { year: number; text: string } | null {
+    // Match patterns like '1096 – Event description' or '1096 BC – Event description'
+    const match = eventText.match(wikiExtractor[lang] || wikiExtractor['en'] || '');
+    if (!match || match[2]) {
+        // No year found, or a BCE date; skip the event
+        return null;
+    }
+    // Clean description
+    const text = (match[3] || '')
+        .replace(/\s+([.,])/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return { year: parseInt(match[1] || '', 10), text };
+}
+
+/**
+ * Turns the extracted sections into an iCalendar document.
+ */
+function buildCalendar(
+    allEvents: Record<string, WikiEvent[]>,
+    dateStr: string,
+    month: number,
+    day: number,
+    lang: string,
+): string {
     const cal = ical({ name: `Events on ${dateStr}` });
 
     for (const [section, events] of Object.entries(allEvents)) {
         for (const event of events) {
-            const eventText = event.text;
-            const eventHtml = event.html;
-
-            // Match patterns like '1096 – Event description' or
-            // '1096 BC – Event description'
-            const match = eventText.match(wikiExtractor[lang] || wikiExtractor['en'] || '');
-            let descriptionText;
-            const descriptionHtml = eventHtml;
-            let eventYear;
-            if (match) {
-                const yearStr = match[1] || '';
-                const bc = match[2];
-                descriptionText = match[3] || '';
-                // Clean description
-                descriptionText = descriptionText
-                    .replace(/\s+([.,])/g, '$1')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-                const year = parseInt(yearStr, 10);
-                if (bc) {
-                    // BCE date handling
-                    // Skip BCE events
-                    continue;
-                } else {
-                    eventYear = year;
-                }
-            } else {
-                // No year found; skip the event
+            const entry = parseEventEntry(event.text, lang);
+            if (!entry) {
                 continue;
             }
 
-            const eventDate = createDate(eventYear, month, day);
+            const eventDate = createDate(entry.year, month, day);
             if (!eventDate) {
                 // Invalid date; skip the event
                 continue;
@@ -173,10 +171,10 @@ async function wiki2ics(dateParam: string, sectionTitles: string[], lang = 'en')
             cal.createEvent({
                 start: eventDate,
                 end: eventDate,
-                summary: `${section}: ${descriptionText}`,
+                summary: `${section}: ${entry.text}`,
                 description: {
-                    plain: descriptionText,
-                    html: descriptionHtml,
+                    plain: entry.text,
+                    html: event.html,
                 },
                 id: generateUID(),
             });
@@ -185,6 +183,40 @@ async function wiki2ics(dateParam: string, sectionTitles: string[], lang = 'en')
 
     // Return ICS data as string
     return cal.toString();
+}
+
+/**
+ * Fetches Wikipedia's On This Day events and converts them to ICS
+ */
+async function wiki2ics(dateParam: string, sectionTitles: string[], lang = 'en'): Promise<string> {
+    const dateObj = resolveDate(dateParam);
+
+    sectionTitles = (sectionTitles.length && sectionTitles) || getSectionTitles(lang);
+    logger.debug('sectionTitles: %s', sectionTitles);
+
+    const dateStr = formatWikiDate(dateObj, lang);
+
+    logger.info(`Fetching Wikipedia events for ${dateStr} in language ${lang}`);
+
+    // Wikipedia API URLs
+    const apiUrl = `https://${lang}.wikipedia.org/w/api.php`;
+
+    // Fetch section indexes
+    const sectionIndexes = await getSectionIndexes(apiUrl, dateStr, sectionTitles);
+    if (Object.keys(sectionIndexes).length === 0) {
+        logger.error('Failed to retrieve section indexes.');
+        return '';
+    }
+
+    const allEvents = await fetchSectionEvents(
+        apiUrl,
+        dateStr,
+        sectionTitles,
+        sectionIndexes,
+        lang,
+    );
+
+    return buildCalendar(allEvents, dateStr, dateObj.month, dateObj.day, lang);
 }
 
 /**

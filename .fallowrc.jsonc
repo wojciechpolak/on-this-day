@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+
+    // This project moves Nuxt's directories (srcDir: src/app, serverDir: src/server),
+    // so a few roots are not auto-detected:
+    "entry": [
+        // Nitro route handlers, mounted by the file name rather than by an import.
+        "src/server/api/**/*.{get,post,put,patch,delete,head,options}.ts",
+        // Stubs for Nuxt's `#imports`, wired up through a vitest.config.ts alias.
+        "src/test/nuxt-imports.ts",
+    ],
+}

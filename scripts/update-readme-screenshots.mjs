@@ -45,6 +45,15 @@ function disableMotionCss() {
     `;
 }
 
+async function serverIsReady() {
+    try {
+        const response = await fetch(baseUrl);
+        return response.ok;
+    } catch {
+        return false;
+    }
+}
+
 async function waitForServer(serverProcess, timeoutMs = 120_000) {
     const deadline = Date.now() + timeoutMs;
 
@@ -53,12 +62,9 @@ async function waitForServer(serverProcess, timeoutMs = 120_000) {
             throw new Error(`Screenshot server exited early with code ${serverProcess.exitCode}.`);
         }
 
-        try {
-            const response = await fetch(baseUrl);
-            if (response.ok) {
-                return;
-            }
-        } catch {}
+        if (await serverIsReady()) {
+            return;
+        }
 
         await delay(1_000);
     }

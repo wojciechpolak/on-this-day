@@ -20,11 +20,23 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-import ICalParser from '#shared/ics-parser';
 import cache from '../cache';
 import logger from '../logger';
-import { sortEvents } from '#shared/helpers';
+import { respondWithIcs } from '../ics-response';
 import { useRuntimeConfig } from '#imports';
+
+/**
+ * Reads one ICS source, either from a local path or over HTTP.
+ */
+async function fetchIcsSource(url: string): Promise<string> {
+    if (url.startsWith('/') || url.startsWith('./')) {
+        const filePath = path.resolve(process.cwd(), url);
+        logger.debug('Fetching ICS from local file: %s', filePath);
+        return await fs.readFile(filePath, 'utf-8');
+    }
+    logger.debug('Fetching ICS from %s', url);
+    return await $fetch(url, { responseType: 'text' });
+}
 
 export default defineEventHandler(async (event) => {
     const config = useRuntimeConfig();
@@ -51,39 +63,15 @@ export default defineEventHandler(async (event) => {
 
         // If already in cache, return it
         if (cache.has(cacheKey)) {
-            const cachedData = cache.get(cacheKey) as string;
-            if (query.raw) {
-                event.node.res.setHeader('Content-Type', 'text/calendar');
-                return event.node.res.end(cachedData);
-            }
-            const parser = new ICalParser(cachedData);
-            return parser.getEvents().sort(sortEvents);
+            return respondWithIcs(event, query.raw, cache.get(cacheKey) as string);
         }
 
         // Otherwise fetch from all URLs
-        const icsDataArray = await Promise.all(
-            icsUrls.map(async (url: string) => {
-                if (url.startsWith('/') || url.startsWith('./')) {
-                    const filePath = path.resolve(process.cwd(), url);
-                    logger.debug('Fetching ICS from local file: %s', filePath);
-                    return await fs.readFile(filePath, 'utf-8');
-                } else {
-                    logger.debug('Fetching ICS from %s', url);
-                    return await $fetch(url, { responseType: 'text' });
-                }
-            }),
-        );
-
+        const icsDataArray = await Promise.all(icsUrls.map(fetchIcsSource));
         const combinedData = icsDataArray.join('\n');
         cache.set(cacheKey, combinedData, cacheTtl);
 
-        if (query.raw) {
-            event.node.res.setHeader('Content-Type', 'text/calendar');
-            return event.node.res.end(combinedData);
-        }
-
-        const parser = new ICalParser(combinedData);
-        return parser.getEvents().sort(sortEvents);
+        return respondWithIcs(event, query.raw, combinedData);
     } catch (error) {
         logger.error(error);
         throw createError({
