@@ -32,6 +32,10 @@ a convenient way to look back at your personal history.
   <img alt="Screenshot of On This Day" src="./.screenshots/main-view-light.png">
 </picture>
 
+> [!TIP]
+> There is an Obsidian counterpart, [Daily Echoes](https://github.com/wojciechpolak/obsidian-daily-echoes).
+> Same idea, except it reads your Obsidian daily notes instead of ICS calendars.
+
 ## Running
 
 ### Create a `.env` file and add your calendar URL(s):
